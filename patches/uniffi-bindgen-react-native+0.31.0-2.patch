@@ -46,3 +46,55 @@ index b9ba204..6e6bc58 100644
          Ok(())
      }
  
+diff --git a/node_modules/uniffi-bindgen-react-native/crates/ubrn_common/src/files.rs b/node_modules/uniffi-bindgen-react-native/crates/ubrn_common/src/files.rs
+index 1c2e98f..5d56d2a 100644
+--- a/node_modules/uniffi-bindgen-react-native/crates/ubrn_common/src/files.rs
++++ b/node_modules/uniffi-bindgen-react-native/crates/ubrn_common/src/files.rs
+@@ -220,13 +220,28 @@ pub fn path_or_shim(file_path: &Utf8Path) -> Result<Utf8PathBuf> {
+     })
+ }
+ 
++fn normalize_canonical_path(path: Utf8PathBuf) -> Utf8PathBuf {
++    #[cfg(windows)]
++    {
++        let path = path.as_str();
++        if let Some(rest) = path.strip_prefix("\\\\?\\UNC\\") {
++            return Utf8PathBuf::from(format!("\\\\{rest}"));
++        }
++        if let Some(rest) = path.strip_prefix("\\\\?\\") {
++            return Utf8PathBuf::from(rest);
++        }
++    }
++
++    path
++}
++
+ #[extend::ext]
+ pub impl Utf8Path {
+     fn canonicalize_utf8_or_shim(&self) -> Result<Utf8PathBuf> {
+         Ok(if is_recording_enabled() {
+             self.to_path_buf()
+         } else {
+-            self.canonicalize_utf8()?
++            normalize_canonical_path(self.canonicalize_utf8()?)
+         })
+     }
+ }
+diff --git a/node_modules/uniffi-bindgen-react-native/crates/ubrn_common/src/fmt.rs b/node_modules/uniffi-bindgen-react-native/crates/ubrn_common/src/fmt.rs
+index 968f72e..f71d4e4 100644
+--- a/node_modules/uniffi-bindgen-react-native/crates/ubrn_common/src/fmt.rs
++++ b/node_modules/uniffi-bindgen-react-native/crates/ubrn_common/src/fmt.rs
+@@ -35,7 +35,12 @@ pub fn clang_format<P: AsRef<Utf8Path>>(path: P, check_only: bool) -> Result<Opt
+ }
+ 
+ pub fn prettier<P: AsRef<Utf8Path>>(out_dir: P, check_only: bool) -> Result<Option<Command>> {
+-    let prettier = resolve(&out_dir, "node_modules/.bin/prettier")?;
++    let prettier_bin = if cfg!(windows) {
++        "node_modules/.bin/prettier.cmd"
++    } else {
++        "node_modules/.bin/prettier"
++    };
++    let prettier = resolve(&out_dir, prettier_bin)?;
+     Ok(if let Some(prettier) = prettier {
+         let mut cmd = Command::new(prettier);
+         if check_only {

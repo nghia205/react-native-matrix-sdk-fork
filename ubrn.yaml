@@ -1,10 +1,10 @@
 ---
 crate:
   repo: https://github.com/matrix-org/matrix-rust-sdk
-  rev: 742a0db07bde3afd049077e7962948111473e1e1 # matrix-sdk-base-0.16.0
+  rev: 2c2e0f1b152c4a8dcbbb7b5347f5494a57516bc2
   manifestPath: bindings/matrix-sdk-ffi/Cargo.toml
 android:
-  cargoExtras: ['--features', 'rustls-tls']
+  cargoExtras: []
   directory: android
   native_bindings_dir: kotlin
   useSharedLibrary: true
@@ -12,8 +12,10 @@ android:
   targets:
     - arm64-v8a
     - armeabi-v7a
+    - x86
+    - x86_64
 ios:
-  cargoExtras: ['--features', 'rustls-tls']
+  cargoExtras: []
   directory: ios
   native_bindings_dir: swift
   targets:
