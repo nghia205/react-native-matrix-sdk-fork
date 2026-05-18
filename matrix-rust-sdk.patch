@@ -10,3 +10,77 @@ index f7ccf826e..76563ca11 100644
  #![doc = include_str!("../README.md")]
  #![warn(missing_debug_implementations, missing_docs)]
  #![cfg_attr(target_family = "wasm", allow(clippy::arc_with_non_send_sync))]
+diff --git a/bindings/matrix-sdk-ffi/Cargo.toml b/bindings/matrix-sdk-ffi/Cargo.toml
+--- a/bindings/matrix-sdk-ffi/Cargo.toml
++++ b/bindings/matrix-sdk-ffi/Cargo.toml
+@@ -121,6 +121,7 @@ uniffi = { workspace = true, features = ["tokio"] }
+ 
+ [target.'cfg(target_os = "android")'.dependencies]
+ paranoid-android = { version = "0.2.2", default-features = false }
++rustls = { version = "0.23.38", default-features = false, features = ["ring", "std", "tls12"] }
+ # Needed for `rustls-platform-verifier`. Newer versions aren't compatible with it.
+ jni = "0.21.1"
+ # Used to access the credential storage on Android
+diff --git a/bindings/matrix-sdk-ffi/src/platform/android_platform.rs b/bindings/matrix-sdk-ffi/src/platform/android_platform.rs
+--- a/bindings/matrix-sdk-ffi/src/platform/android_platform.rs
++++ b/bindings/matrix-sdk-ffi/src/platform/android_platform.rs
+@@ -13,6 +13,7 @@ static ANDROID_JVM: once_cell::sync::OnceCell<jni::JavaVM> = once_cell::sync::On
+ /// This includes setting up `rustls-platform-verifier`.
+ pub(crate) fn init() {
+     debug!("Initializing Android platform support");
++    install_rustls_ring_provider();
+ 
+     ANDROID_JVM.get_or_init(|| {
+         match get_java_vm() {
+@@ -34,6 +35,11 @@ pub(crate) fn init() {
+     });
+ }
+ 
++fn install_rustls_ring_provider() {
++    // reqwest is built with rustls-no-provider for Android, so install ring before TLS is used.
++    let _ = rustls::crypto::ring::default_provider().install_default();
++}
++
+ fn get_java_vm() -> Result<jni::JavaVM, Box<dyn Error>> {
+     debug!("Getting a JVM pointer");
+     #[allow(non_snake_case)]
+diff --git a/Cargo.lock b/Cargo.lock
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -3439,6 +3439,7 @@ dependencies = [
+  "once_cell",
+  "paranoid-android",
+  "ruma",
++ "rustls",
+  "rustls-platform-verifier",
+  "sentry",
+  "sentry-tracing",
+@@ -5047,6 +5048,7 @@ dependencies = [
+  "aws-lc-rs",
+  "log",
+  "once_cell",
++ "ring",
+  "rustls-pki-types",
+  "rustls-webpki",
+  "subtle",
+diff --git a/crates/matrix-sdk/Cargo.toml b/crates/matrix-sdk/Cargo.toml
+--- a/crates/matrix-sdk/Cargo.toml
++++ b/crates/matrix-sdk/Cargo.toml
+@@ -160,7 +160,7 @@ zeroize.workspace = true
+ backon = "1.6.0"
+ # only activate reqwest's stream feature on non-wasm, the wasm part seems to not
+ # support *sending* streams, which makes it useless for us.
+-reqwest = { workspace = true, features = ["stream", "gzip", "http2", "rustls"] }
++reqwest = { workspace = true, features = ["stream", "gzip", "http2", "rustls-no-provider"] }
+ tokio = { workspace = true, features = ["fs", "rt", "macros"] }
+ wiremock = { workspace = true, optional = true }
+ 
+@@ -196,7 +196,7 @@ wiremock.workspace = true
+ wasm-bindgen-test.workspace = true
+ 
+ [target.'cfg(target_os = "android")'.dependencies]
+-rustls = "0.23.38"
++rustls = { version = "0.23.38", default-features = false, features = ["logging", "ring", "std", "tls12"] }
+ rustls-pki-types = "1.14.0"
+ rustls-native-certs = "0.8.3"
+ webpki-roots = "1.0.6"
