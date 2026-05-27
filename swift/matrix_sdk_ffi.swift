@@ -23232,6 +23232,10 @@ public struct UploadParameters: Equatable, Hashable {
      * Optional Event ID to reply to.
      */
     public var inReplyTo: String?
+    /**
+     * Optional transaction ID to use for local echo tracking.
+     */
+    public var transactionId: String?
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
@@ -23250,12 +23254,16 @@ public struct UploadParameters: Equatable, Hashable {
          */mentions: Mentions?, 
         /**
          * Optional Event ID to reply to.
-         */inReplyTo: String?) {
+         */inReplyTo: String?,
+        /**
+         * Optional transaction ID to use for local echo tracking.
+         */transactionId: String?) {
         self.source = source
         self.caption = caption
         self.formattedCaption = formattedCaption
         self.mentions = mentions
         self.inReplyTo = inReplyTo
+        self.transactionId = transactionId
     }
 
     
@@ -23278,7 +23286,8 @@ public struct FfiConverterTypeUploadParameters: FfiConverterRustBuffer {
                 caption: FfiConverterOptionString.read(from: &buf), 
                 formattedCaption: FfiConverterOptionTypeFormattedBody.read(from: &buf), 
                 mentions: FfiConverterOptionTypeMentions.read(from: &buf), 
-                inReplyTo: FfiConverterOptionString.read(from: &buf)
+                inReplyTo: FfiConverterOptionString.read(from: &buf),
+                transactionId: FfiConverterOptionString.read(from: &buf)
         )
     }
 
@@ -23288,6 +23297,7 @@ public struct FfiConverterTypeUploadParameters: FfiConverterRustBuffer {
         FfiConverterOptionTypeFormattedBody.write(value.formattedCaption, into: &buf)
         FfiConverterOptionTypeMentions.write(value.mentions, into: &buf)
         FfiConverterOptionString.write(value.inReplyTo, into: &buf)
+        FfiConverterOptionString.write(value.transactionId, into: &buf)
     }
 }
 

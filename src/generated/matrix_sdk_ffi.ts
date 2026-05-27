@@ -4715,6 +4715,10 @@ export type GalleryUploadParameters = {
    * Optional Event ID to reply to.
    */
   inReplyTo?: string;
+  /**
+   * Optional transaction ID to use for local echo tracking.
+   */
+  transactionId?: string;
 };
 
 /**
@@ -10086,6 +10090,7 @@ const FfiConverterTypeUploadParameters = (() => {
         formattedCaption: FfiConverterOptionalTypeFormattedBody.read(from),
         mentions: FfiConverterOptionalTypeMentions.read(from),
         inReplyTo: FfiConverterOptionalString.read(from),
+        transactionId: FfiConverterOptionalString.read(from),
       };
     }
     write(value: TypeName, into: RustBuffer): void {
@@ -10094,6 +10099,7 @@ const FfiConverterTypeUploadParameters = (() => {
       FfiConverterOptionalTypeFormattedBody.write(value.formattedCaption, into);
       FfiConverterOptionalTypeMentions.write(value.mentions, into);
       FfiConverterOptionalString.write(value.inReplyTo, into);
+      FfiConverterOptionalString.write(value.transactionId, into);
     }
     allocationSize(value: TypeName): number {
       return (
@@ -10103,7 +10109,8 @@ const FfiConverterTypeUploadParameters = (() => {
           value.formattedCaption
         ) +
         FfiConverterOptionalTypeMentions.allocationSize(value.mentions) +
-        FfiConverterOptionalString.allocationSize(value.inReplyTo)
+        FfiConverterOptionalString.allocationSize(value.inReplyTo) +
+        FfiConverterOptionalString.allocationSize(value.transactionId)
       );
     }
   }

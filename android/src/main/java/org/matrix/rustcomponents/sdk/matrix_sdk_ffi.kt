@@ -32085,7 +32085,7 @@ data class AbstractProgress (
      * How many units were already transferred.
      */
     var `current`: kotlin.ULong
-    , 
+    ,
     /**
      * How many units there are in total.
      */
@@ -38301,6 +38301,11 @@ data class UploadParameters (
      * Optional Event ID to reply to.
      */
     var `inReplyTo`: kotlin.String?
+    ,
+    /**
+     * Optional transaction ID to use for local echo tracking.
+     */
+    var `transactionId`: kotlin.String?
     
 ){
     
@@ -38322,6 +38327,7 @@ public object FfiConverterTypeUploadParameters: FfiConverterRustBuffer<UploadPar
             FfiConverterOptionalTypeFormattedBody.read(buf),
             FfiConverterOptionalTypeMentions.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
         )
     }
 
@@ -38330,7 +38336,8 @@ public object FfiConverterTypeUploadParameters: FfiConverterRustBuffer<UploadPar
             FfiConverterOptionalString.allocationSize(value.`caption`) +
             FfiConverterOptionalTypeFormattedBody.allocationSize(value.`formattedCaption`) +
             FfiConverterOptionalTypeMentions.allocationSize(value.`mentions`) +
-            FfiConverterOptionalString.allocationSize(value.`inReplyTo`)
+            FfiConverterOptionalString.allocationSize(value.`inReplyTo`) +
+            FfiConverterOptionalString.allocationSize(value.`transactionId`)
     )
 
     override fun write(value: UploadParameters, buf: ByteBuffer) {
@@ -38339,6 +38346,7 @@ public object FfiConverterTypeUploadParameters: FfiConverterRustBuffer<UploadPar
             FfiConverterOptionalTypeFormattedBody.write(value.`formattedCaption`, buf)
             FfiConverterOptionalTypeMentions.write(value.`mentions`, buf)
             FfiConverterOptionalString.write(value.`inReplyTo`, buf)
+            FfiConverterOptionalString.write(value.`transactionId`, buf)
     }
 }
 
@@ -65476,5 +65484,3 @@ public typealias FfiConverterTypeTimestamp = FfiConverterULong
     )
     }
     
-
-

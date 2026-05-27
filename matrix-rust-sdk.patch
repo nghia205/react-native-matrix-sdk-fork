@@ -84,3 +84,41 @@ diff --git a/crates/matrix-sdk/Cargo.toml b/crates/matrix-sdk/Cargo.toml
  rustls-pki-types = "1.14.0"
  rustls-native-certs = "0.8.3"
  webpki-roots = "1.0.6"
+diff --git a/bindings/matrix-sdk-ffi/src/timeline/mod.rs b/bindings/matrix-sdk-ffi/src/timeline/mod.rs
+--- a/bindings/matrix-sdk-ffi/src/timeline/mod.rs
++++ b/bindings/matrix-sdk-ffi/src/timeline/mod.rs
+@@ -39,6 +39,6 @@ use mime::Mime;
+ use reply::{EmbeddedEventDetails, InReplyToDetails};
+ use ruma::{
+-    EventId, UInt, assign,
++    EventId, OwnedTransactionId, UInt, assign,
+     events::{
+         AnyMessageLikeEventContent,
+         location::{AssetType as RumaAssetType, LocationContent, ZoomLevel},
+@@ -118,6 +118,10 @@ impl Timeline {
+                 formatted_body_from(Some(&caption), params.formatted_caption.map(Into::into));
+             assign!(TextMessageEventContent::plain(caption), { formatted })
+         });
++        let txn_id = params.transaction_id.and_then(|transaction_id| {
++            let transaction_id = transaction_id.trim();
++            (!transaction_id.is_empty()).then(|| OwnedTransactionId::from(transaction_id))
++        });
+-
++
+         let attachment_config = AttachmentConfig {
+             info: Some(attachment_info),
+@@ -125,3 +129,4 @@ impl Timeline {
+             mentions: params.mentions.map(Into::into),
+             in_reply_to: in_reply_to_event_id,
++            txn_id,
+             ..Default::default()
+@@ -201,6 +206,8 @@ pub struct UploadParameters {
+     mentions: Option<Mentions>,
+     /// Optional Event ID to reply to.
+     in_reply_to: Option<String>,
++    /// Optional transaction ID to use for local echo tracking.
++    transaction_id: Option<String>,
+ }
+-
++
+ /// A source for uploading a file
