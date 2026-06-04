@@ -4715,10 +4715,6 @@ export type GalleryUploadParameters = {
    * Optional Event ID to reply to.
    */
   inReplyTo?: string;
-  /**
-   * Optional transaction ID to use for local echo tracking.
-   */
-  transactionId?: string;
 };
 
 /**
@@ -10061,6 +10057,10 @@ export type UploadParameters = {
    * Optional Event ID to reply to.
    */
   inReplyTo?: string;
+  /**
+   * Optional transaction ID to use for local echo tracking.
+   */
+  transactionId?: string;
 };
 
 /**

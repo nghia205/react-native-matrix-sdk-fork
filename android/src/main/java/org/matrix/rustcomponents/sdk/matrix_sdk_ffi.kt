@@ -32085,7 +32085,7 @@ data class AbstractProgress (
      * How many units were already transferred.
      */
     var `current`: kotlin.ULong
-    ,
+    , 
     /**
      * How many units there are in total.
      */
@@ -38301,7 +38301,7 @@ data class UploadParameters (
      * Optional Event ID to reply to.
      */
     var `inReplyTo`: kotlin.String?
-    ,
+    , 
     /**
      * Optional transaction ID to use for local echo tracking.
      */
@@ -65484,3 +65484,5 @@ public typealias FfiConverterTypeTimestamp = FfiConverterULong
     )
     }
     
+
+

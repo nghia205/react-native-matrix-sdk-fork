@@ -49,10 +49,6 @@ export async function uniffiInitAsync() {
   // NOOP.
 }
 
-export async function generateTransactionId(): Promise<string> {
-  return matrix_sdk_ffi.genTransactionId();
-}
-
 // Export the crates as individually namespaced objects.
 export default {
   matrix_sdk,
@@ -61,5 +57,5 @@ export default {
   matrix_sdk_crypto,
   matrix_sdk_ffi,
   matrix_sdk_ui,
-  generateTransactionId,
 };
+

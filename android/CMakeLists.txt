@@ -5,11 +5,6 @@ project(ReactNativeMatrixSdk)
 set (CMAKE_VERBOSE_MAKEFILE ON)
 set (CMAKE_CXX_STANDARD 17)
 
-# Keep Ninja object paths below Windows MAX_PATH when this package is nested in node_modules.
-if(CMAKE_HOST_WIN32)
-    set(CMAKE_OBJECT_PATH_MAX 260)
-endif()
-
 # Resolve the path to the uniffi-bindgen-react-native package
 execute_process(
     COMMAND node -p "require.resolve('uniffi-bindgen-react-native/package.json')"
