@@ -2594,6 +2594,9 @@ interface NativeModuleInterface {
   ubrn_uniffi_matrix_sdk_ffi_fn_init_callback_vtable_livelocationsharelistener(
     vtable: UniffiVTableCallbackInterfaceLiveLocationShareListener
   ): void;
+  ubrn_uniffi_matrix_sdk_ffi_fn_init_callback_vtable_matrixmediauploadprogresslistener(
+    vtable: UniffiVTableCallbackInterfaceMatrixMediaUploadProgressListener
+  ): void;
   ubrn_uniffi_matrix_sdk_ffi_fn_init_callback_vtable_notificationsettingsdelegate(
     vtable: UniffiVTableCallbackInterfaceNotificationSettingsDelegate
   ): void;
@@ -2728,6 +2731,20 @@ interface NativeModuleInterface {
     backupInfo: Uint8Array,
     uniffi_out_err: UniffiRustCallStatus
   ): Uint8Array;
+  ubrn_uniffi_matrix_sdk_ffi_fn_func_cancel_matrix_media_upload_rust(
+    uploadId: Uint8Array,
+    uniffi_out_err: UniffiRustCallStatus
+  ): void;
+  ubrn_uniffi_matrix_sdk_ffi_fn_func_upload_matrix_media_rust(
+    fd: number,
+    filename: Uint8Array,
+    mimeType: Uint8Array,
+    homeserverUrl: Uint8Array,
+    accessToken: Uint8Array,
+    encrypt: number,
+    uploadId: Uint8Array,
+    listener: bigint
+  ): bigint;
   ubrn_uniffi_matrix_sdk_ffi_fn_func_init_platform(
     config: Uint8Array,
     useLightweightTokioRuntime: number,
@@ -2960,6 +2977,8 @@ interface NativeModuleInterface {
   ubrn_uniffi_matrix_sdk_ffi_checksum_func_gen_transaction_id(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_func_database_contains_secrets_bundle(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_func_json_string_contains_secrets_bundle(): number;
+  ubrn_uniffi_matrix_sdk_ffi_checksum_func_cancel_matrix_media_upload_rust(): number;
+  ubrn_uniffi_matrix_sdk_ffi_checksum_func_upload_matrix_media_rust(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_func_init_platform(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_func_reload_tracing_file_writer(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_func_log_event(): number;
@@ -3506,6 +3525,7 @@ interface NativeModuleInterface {
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_recoverystatelistener_on_update(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_verificationstatelistener_on_update(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_livelocationsharelistener_on_update(): number;
+  ubrn_uniffi_matrix_sdk_ffi_checksum_method_matrixmediauploadprogresslistener_on_upload_progress(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_notificationsettingsdelegate_settings_did_change(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_generatedqrloginprogresslistener_on_update(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_grantgeneratedqrloginprogresslistener_on_update(): number;
@@ -3962,6 +3982,12 @@ type UniffiCallbackInterfaceLiveLocationShareListenerMethod0 = (
   uniffiHandle: bigint,
   updates: Uint8Array
 ) => UniffiResult<void>;
+type UniffiCallbackInterfaceMatrixMediaUploadProgressListenerMethod0 = (
+  uniffiHandle: bigint,
+  uploadId: Uint8Array,
+  current: bigint,
+  total: Uint8Array
+) => UniffiResult<void>;
 type UniffiCallbackInterfaceNotificationSettingsDelegateMethod0 = (
   uniffiHandle: bigint
 ) => UniffiResult<void>;
@@ -4186,6 +4212,11 @@ export type UniffiVTableCallbackInterfaceLiveLocationShareListener = {
   uniffiFree: UniffiCallbackInterfaceFree;
   uniffiClone: UniffiCallbackInterfaceClone;
   onUpdate: UniffiCallbackInterfaceLiveLocationShareListenerMethod0;
+};
+export type UniffiVTableCallbackInterfaceMatrixMediaUploadProgressListener = {
+  uniffiFree: UniffiCallbackInterfaceFree;
+  uniffiClone: UniffiCallbackInterfaceClone;
+  onUploadProgress: UniffiCallbackInterfaceMatrixMediaUploadProgressListenerMethod0;
 };
 export type UniffiVTableCallbackInterfaceNotificationSettingsDelegate = {
   uniffiFree: UniffiCallbackInterfaceFree;

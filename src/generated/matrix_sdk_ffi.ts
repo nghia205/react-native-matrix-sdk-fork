@@ -49,6 +49,7 @@ import nativeModule, {
   type UniffiVTableCallbackInterfaceRecoveryStateListener,
   type UniffiVTableCallbackInterfaceVerificationStateListener,
   type UniffiVTableCallbackInterfaceLiveLocationShareListener,
+  type UniffiVTableCallbackInterfaceMatrixMediaUploadProgressListener,
   type UniffiVTableCallbackInterfaceNotificationSettingsDelegate,
   type UniffiVTableCallbackInterfaceGeneratedQrLoginProgressListener,
   type UniffiVTableCallbackInterfaceGrantGeneratedQrLoginProgressListener,
@@ -292,6 +293,78 @@ export function jsonStringContainsSecretsBundle(
       /*liftString:*/ FfiConverterString.lift
     )
   );
+}
+/**
+ * Requests cancellation for an active Rust upload task.
+ */
+export function cancelMatrixMediaUploadRust(uploadId: string): void {
+  uniffiCaller.rustCall(
+    /*caller:*/ (callStatus) => {
+      nativeModule().ubrn_uniffi_matrix_sdk_ffi_fn_func_cancel_matrix_media_upload_rust(
+        FfiConverterString.lower(uploadId),
+        callStatus
+      );
+    },
+    /*liftString:*/ FfiConverterString.lift
+  );
+}
+/**
+ * Uploads an Android-owned detached file descriptor through Rust.
+ *
+ * The `fd` must be produced by `ParcelFileDescriptor.detachFd()` on Android.
+ * This function takes ownership via `File::from_raw_fd`; Kotlin must not close
+ * or reuse the fd after calling this function.
+ */
+export async function uploadMatrixMediaRust(
+  fd: /*i32*/ number,
+  filename: string | undefined,
+  mimeType: string | undefined,
+  homeserverUrl: string,
+  accessToken: string,
+  encrypt: boolean,
+  uploadId: string,
+  listener: MatrixMediaUploadProgressListener,
+  asyncOpts_?: { signal: AbortSignal }
+): Promise<MatrixMediaUploadResult> /*throws*/ {
+  const __stack = uniffiIsDebug ? new Error().stack : undefined;
+  try {
+    return await uniffiRustCallAsync(
+      /*rustCaller:*/ uniffiCaller,
+      /*rustFutureFunc:*/ () => {
+        return nativeModule().ubrn_uniffi_matrix_sdk_ffi_fn_func_upload_matrix_media_rust(
+          FfiConverterInt32.lower(fd),
+          FfiConverterOptionalString.lower(filename),
+          FfiConverterOptionalString.lower(mimeType),
+          FfiConverterString.lower(homeserverUrl),
+          FfiConverterString.lower(accessToken),
+          FfiConverterBool.lower(encrypt),
+          FfiConverterString.lower(uploadId),
+          FfiConverterTypeMatrixMediaUploadProgressListener.lower(listener)
+        );
+      },
+      /*pollFunc:*/ nativeModule()
+        .ubrn_ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer,
+      /*cancelFunc:*/ nativeModule()
+        .ubrn_ffi_matrix_sdk_ffi_rust_future_cancel_rust_buffer,
+      /*completeFunc:*/ nativeModule()
+        .ubrn_ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer,
+      /*freeFunc:*/ nativeModule()
+        .ubrn_ffi_matrix_sdk_ffi_rust_future_free_rust_buffer,
+      /*liftFunc:*/ FfiConverterTypeMatrixMediaUploadResult.lift.bind(
+        FfiConverterTypeMatrixMediaUploadResult
+      ),
+      /*liftString:*/ FfiConverterString.lift,
+      /*asyncOpts:*/ asyncOpts_,
+      /*errorHandler:*/ FfiConverterTypeClientError.lift.bind(
+        FfiConverterTypeClientError
+      )
+    );
+  } catch (__error: any) {
+    if (uniffiIsDebug && __error instanceof Error) {
+      __error.stack = __stack;
+    }
+    throw __error;
+  }
 }
 /**
  * Sets up logs and the tokio runtime for the current application.
@@ -1658,6 +1731,77 @@ const uniffiCallbackInterfaceLiveLocationShareListener: {
 // FfiConverter protocol for callback interfaces
 const FfiConverterTypeLiveLocationShareListener =
   new FfiConverterCallback<LiveLocationShareListener>();
+
+/**
+ * Callback used by Kotlin to emit React Native upload progress events.
+ */
+export interface MatrixMediaUploadProgressListener {
+  /**
+   * Called after each chunk is read and queued for upload.
+   */
+  onUploadProgress(
+    uploadId: string,
+    current: /*u64*/ bigint,
+    total: /*u64*/ bigint | undefined
+  ): void;
+}
+
+// Put the implementation in a struct so we don't pollute the top-level namespace
+const uniffiCallbackInterfaceMatrixMediaUploadProgressListener: {
+  vtable: UniffiVTableCallbackInterfaceMatrixMediaUploadProgressListener;
+  register: () => void;
+} = {
+  // Create the VTable using a series of closures.
+  // ts automatically converts these into C callback functions.
+  vtable: {
+    onUploadProgress: (
+      uniffiHandle: bigint,
+      uploadId: Uint8Array,
+      current: bigint,
+      total: Uint8Array
+    ) => {
+      const uniffiMakeCall = (): void => {
+        const jsCallback =
+          FfiConverterTypeMatrixMediaUploadProgressListener.lift(uniffiHandle);
+        return jsCallback.onUploadProgress(
+          FfiConverterString.lift(uploadId),
+          FfiConverterUInt64.lift(current),
+          FfiConverterOptionalUInt64.lift(total)
+        );
+      };
+      const uniffiResult = UniffiResult.ready<void>();
+      const uniffiHandleSuccess = (obj: any) => {};
+      const uniffiHandleError = (code: number, errBuf: UniffiByteArray) => {
+        UniffiResult.writeError(uniffiResult, code, errBuf);
+      };
+      uniffiTraitInterfaceCall(
+        /*makeCall:*/ uniffiMakeCall,
+        /*handleSuccess:*/ uniffiHandleSuccess,
+        /*handleError:*/ uniffiHandleError,
+        /*lowerString:*/ FfiConverterString.lower
+      );
+      return uniffiResult;
+    },
+    uniffiFree: (uniffiHandle: UniffiHandle): void => {
+      // MatrixMediaUploadProgressListener: this will throw a stale handle error if the handle isn't found.
+      FfiConverterTypeMatrixMediaUploadProgressListener.drop(uniffiHandle);
+    },
+    uniffiClone: (uniffiHandle: UniffiHandle): UniffiHandle => {
+      return FfiConverterTypeMatrixMediaUploadProgressListener.clone(
+        uniffiHandle
+      );
+    },
+  },
+  register: () => {
+    nativeModule().ubrn_uniffi_matrix_sdk_ffi_fn_init_callback_vtable_matrixmediauploadprogresslistener(
+      uniffiCallbackInterfaceMatrixMediaUploadProgressListener.vtable
+    );
+  },
+};
+
+// FfiConverter protocol for callback interfaces
+const FfiConverterTypeMatrixMediaUploadProgressListener =
+  new FfiConverterCallback<MatrixMediaUploadProgressListener>();
 
 export interface MediaPreviewConfigListener {
   onChange(mediaPreviewConfig: MediaPreviewConfig | undefined): void;
@@ -5636,6 +5780,77 @@ const FfiConverterTypeMatrixEntity = (() => {
       return (
         FfiConverterTypeMatrixId.allocationSize(value.id) +
         FfiConverterArrayString.allocationSize(value.via)
+      );
+    }
+  }
+  return new FFIConverter();
+})();
+
+/**
+ * Upload result returned to Android so the JS layer can send the final Matrix
+ * room message without routing media bytes through the JS runtime.
+ */
+export type MatrixMediaUploadResult = {
+  /**
+   * Matrix content URI returned by the media repository.
+   */
+  contentUri: string;
+  /**
+   * Whether the uploaded payload was encrypted before being sent.
+   */
+  encrypted: boolean;
+  /**
+   * Original media size when Android/Rust can resolve it.
+   */
+  size?: /*u64*/ bigint;
+  /**
+   * JSON payload for Matrix `content.file` when `encrypted` is true.
+   */
+  encryptedFileJson?: string;
+};
+
+/**
+ * Generated factory for {@link MatrixMediaUploadResult} record objects.
+ */
+export const MatrixMediaUploadResult = (() => {
+  const defaults = () => ({});
+  const create = (() => {
+    return uniffiCreateRecord<
+      MatrixMediaUploadResult,
+      ReturnType<typeof defaults>
+    >(defaults);
+  })();
+  return Object.freeze({
+    create,
+    new: create,
+    defaults: () =>
+      Object.freeze(defaults()) as Partial<MatrixMediaUploadResult>,
+  });
+})();
+
+const FfiConverterTypeMatrixMediaUploadResult = (() => {
+  type TypeName = MatrixMediaUploadResult;
+  class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+    read(from: RustBuffer): TypeName {
+      return {
+        contentUri: FfiConverterString.read(from),
+        encrypted: FfiConverterBool.read(from),
+        size: FfiConverterOptionalUInt64.read(from),
+        encryptedFileJson: FfiConverterOptionalString.read(from),
+      };
+    }
+    write(value: TypeName, into: RustBuffer): void {
+      FfiConverterString.write(value.contentUri, into);
+      FfiConverterBool.write(value.encrypted, into);
+      FfiConverterOptionalUInt64.write(value.size, into);
+      FfiConverterOptionalString.write(value.encryptedFileJson, into);
+    }
+    allocationSize(value: TypeName): number {
+      return (
+        FfiConverterString.allocationSize(value.contentUri) +
+        FfiConverterBool.allocationSize(value.encrypted) +
+        FfiConverterOptionalUInt64.allocationSize(value.size) +
+        FfiConverterOptionalString.allocationSize(value.encryptedFileJson)
       );
     }
   }
@@ -71073,6 +71288,22 @@ function uniffiEnsureInitialized() {
     );
   }
   if (
+    nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_func_cancel_matrix_media_upload_rust() !==
+    9817
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      'uniffi_matrix_sdk_ffi_checksum_func_cancel_matrix_media_upload_rust'
+    );
+  }
+  if (
+    nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_func_upload_matrix_media_rust() !==
+    58738
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      'uniffi_matrix_sdk_ffi_checksum_func_upload_matrix_media_rust'
+    );
+  }
+  if (
     nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_func_init_platform() !==
     14462
   ) {
@@ -75441,6 +75672,14 @@ function uniffiEnsureInitialized() {
     );
   }
   if (
+    nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_method_matrixmediauploadprogresslistener_on_upload_progress() !==
+    10617
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      'uniffi_matrix_sdk_ffi_checksum_method_matrixmediauploadprogresslistener_on_upload_progress'
+    );
+  }
+  if (
     nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_method_notificationsettingsdelegate_settings_did_change() !==
     52554
   ) {
@@ -75744,6 +75983,7 @@ function uniffiEnsureInitialized() {
   uniffiCallbackInterfaceIgnoredUsersListener.register();
   uniffiCallbackInterfaceKnockRequestsListener.register();
   uniffiCallbackInterfaceLiveLocationShareListener.register();
+  uniffiCallbackInterfaceMatrixMediaUploadProgressListener.register();
   uniffiCallbackInterfaceMediaPreviewConfigListener.register();
   uniffiCallbackInterfaceNotificationSettingsDelegate.register();
   uniffiCallbackInterfacePaginationStatusListener.register();
@@ -75876,6 +76116,7 @@ export default Object.freeze({
     FfiConverterTypeLoginWithQrCodeHandler,
     FfiConverterTypeMatrixEntity,
     FfiConverterTypeMatrixId,
+    FfiConverterTypeMatrixMediaUploadResult,
     FfiConverterTypeMediaFileHandle,
     FfiConverterTypeMediaInfoError,
     FfiConverterTypeMediaPreviewConfig,

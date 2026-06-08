@@ -15,6 +15,23 @@ execute_process(
 # paths with Windows path separators.
 get_filename_component(UNIFFI_BINDGEN_PATH "${UNIFFI_BINDGEN_PATH}" DIRECTORY)
 
+# The local file dependency can be resolved through the SDK fork's real path on
+# Windows, while npm hoists uniffi-bindgen-react-native to the app node_modules.
+set(UNIFFI_BINDGEN_FALLBACK_PATHS
+    "${CMAKE_CURRENT_LIST_DIR}/../../node_modules/uniffi-bindgen-react-native"
+    "${CMAKE_CURRENT_LIST_DIR}/../../../uniffi-bindgen-react-native"
+)
+
+foreach(UNIFFI_BINDGEN_FALLBACK_PATH IN LISTS UNIFFI_BINDGEN_FALLBACK_PATHS)
+    if(NOT EXISTS "${UNIFFI_BINDGEN_PATH}/cpp/includes/UniffiCallInvoker.h" AND EXISTS "${UNIFFI_BINDGEN_FALLBACK_PATH}/cpp/includes/UniffiCallInvoker.h")
+        cmake_path(SET UNIFFI_BINDGEN_PATH "${UNIFFI_BINDGEN_FALLBACK_PATH}" NORMALIZE)
+    endif()
+endforeach()
+
+if(NOT EXISTS "${UNIFFI_BINDGEN_PATH}/cpp/includes/UniffiCallInvoker.h")
+    message(FATAL_ERROR "Unable to locate uniffi-bindgen-react-native C++ includes")
+endif()
+
 # Specifies a path to native header files.
 include_directories(
     ../cpp

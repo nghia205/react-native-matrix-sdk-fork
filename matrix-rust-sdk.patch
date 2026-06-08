@@ -1,19 +1,82 @@
-diff --git a/crates/matrix-sdk/src/lib.rs b/crates/matrix-sdk/src/lib.rs
-index f7ccf826e..76563ca11 100644
---- a/crates/matrix-sdk/src/lib.rs
-+++ b/crates/matrix-sdk/src/lib.rs
-@@ -13,6 +13,7 @@
- // See the License for the specific language governing permissions and
- // limitations under the License.
- 
-+#![recursion_limit = "256"]
- #![doc = include_str!("../README.md")]
- #![warn(missing_debug_implementations, missing_docs)]
- #![cfg_attr(target_family = "wasm", allow(clippy::arc_with_non_send_sync))]
+diff --git a/Cargo.lock b/Cargo.lock
+index a85293b..b78953b 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -3417,10 +3417,14 @@ dependencies = [
+ name = "matrix-sdk-ffi"
+ version = "0.16.0"
+ dependencies = [
++ "aes",
+  "anyhow",
+  "async-compat",
++ "base64",
++ "bytes",
+  "chrono",
+  "console_error_panic_hook",
++ "ctr",
+  "extension-trait",
+  "eyeball-im",
+  "futures-executor",
+@@ -3438,12 +3442,17 @@ dependencies = [
+  "oauth2",
+  "once_cell",
+  "paranoid-android",
++ "percent-encoding",
++ "rand 0.10.1",
++ "reqwest",
+  "ruma",
++ "rustls",
+  "rustls-platform-verifier",
+  "sentry",
+  "sentry-tracing",
+  "serde",
+  "serde_json",
++ "sha2",
+  "similar-asserts",
+  "tempfile",
+  "thiserror 2.0.18",
+@@ -5047,6 +5056,7 @@ dependencies = [
+  "aws-lc-rs",
+  "log",
+  "once_cell",
++ "ring",
+  "rustls-pki-types",
+  "rustls-webpki",
+  "subtle",
 diff --git a/bindings/matrix-sdk-ffi/Cargo.toml b/bindings/matrix-sdk-ffi/Cargo.toml
+index 576defe..92264f6 100644
 --- a/bindings/matrix-sdk-ffi/Cargo.toml
 +++ b/bindings/matrix-sdk-ffi/Cargo.toml
-@@ -121,6 +121,7 @@ uniffi = { workspace = true, features = ["tokio"] }
+@@ -42,7 +42,11 @@ experimental-push-secrets = ["matrix-sdk/experimental-push-secrets"]
+ 
+ [dependencies]
+ anyhow.workspace = true
++aes = "0.8.4"
++base64.workspace = true
++bytes = "1.10.1"
+ chrono.workspace = true
++ctr = "0.9.2"
+ extension-trait = "1.0.2"
+ eyeball-im.workspace = true
+ futures-util.workspace = true
+@@ -108,6 +112,10 @@ url.workspace = true
+ uuid = { version = "1.4.1", default-features = false, features = ["std", "v4"] }
+ zeroize.workspace = true
+ oauth2.workspace = true
++percent-encoding = "2.3.1"
++rand.workspace = true
++reqwest = { workspace = true, features = ["stream", "gzip", "http2", "rustls-no-provider"] }
++sha2.workspace = true
+ 
+ [target.'cfg(target_family = "wasm")'.dependencies]
+ console_error_panic_hook = { version = "0.1.7", default-features = false }
+@@ -117,11 +125,12 @@ futures-executor.workspace = true
+ 
+ [target.'cfg(not(target_family = "wasm"))'.dependencies]
+ async-compat.workspace = true
+-tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
++tokio = { workspace = true, features = ["fs", "io-util", "rt-multi-thread", "macros", "sync"] }
+ uniffi = { workspace = true, features = ["tokio"] }
  
  [target.'cfg(target_os = "android")'.dependencies]
  paranoid-android = { version = "0.2.2", default-features = false }
@@ -21,7 +84,20 @@ diff --git a/bindings/matrix-sdk-ffi/Cargo.toml b/bindings/matrix-sdk-ffi/Cargo.
  # Needed for `rustls-platform-verifier`. Newer versions aren't compatible with it.
  jni = "0.21.1"
  # Used to access the credential storage on Android
+diff --git a/bindings/matrix-sdk-ffi/src/lib.rs b/bindings/matrix-sdk-ffi/src/lib.rs
+index b7cf9e1..e7e2311 100644
+--- a/bindings/matrix-sdk-ffi/src/lib.rs
++++ b/bindings/matrix-sdk-ffi/src/lib.rs
+@@ -12,6 +12,7 @@ mod event;
+ mod helpers;
+ mod identity_status_change;
+ mod live_location_share;
++mod matrix_media_uploader;
+ mod notification;
+ mod notification_settings;
+ mod platform;
 diff --git a/bindings/matrix-sdk-ffi/src/platform/android_platform.rs b/bindings/matrix-sdk-ffi/src/platform/android_platform.rs
+index e664d17..ccc5b64 100644
 --- a/bindings/matrix-sdk-ffi/src/platform/android_platform.rs
 +++ b/bindings/matrix-sdk-ffi/src/platform/android_platform.rs
 @@ -13,6 +13,7 @@ static ANDROID_JVM: once_cell::sync::OnceCell<jni::JavaVM> = once_cell::sync::On
@@ -44,26 +120,49 @@ diff --git a/bindings/matrix-sdk-ffi/src/platform/android_platform.rs b/bindings
  fn get_java_vm() -> Result<jni::JavaVM, Box<dyn Error>> {
      debug!("Getting a JVM pointer");
      #[allow(non_snake_case)]
-diff --git a/Cargo.lock b/Cargo.lock
---- a/Cargo.lock
-+++ b/Cargo.lock
-@@ -3439,6 +3439,7 @@ dependencies = [
-  "once_cell",
-  "paranoid-android",
-  "ruma",
-+ "rustls",
-  "rustls-platform-verifier",
-  "sentry",
-  "sentry-tracing",
-@@ -5047,6 +5048,7 @@ dependencies = [
-  "aws-lc-rs",
-  "log",
-  "once_cell",
-+ "ring",
-  "rustls-pki-types",
-  "rustls-webpki",
-  "subtle",
+diff --git a/bindings/matrix-sdk-ffi/src/timeline/mod.rs b/bindings/matrix-sdk-ffi/src/timeline/mod.rs
+index bec8cd8..5f924e3 100644
+--- a/bindings/matrix-sdk-ffi/src/timeline/mod.rs
++++ b/bindings/matrix-sdk-ffi/src/timeline/mod.rs
+@@ -38,7 +38,7 @@ use matrix_sdk_ui::timeline::{
+ use mime::Mime;
+ use reply::{EmbeddedEventDetails, InReplyToDetails};
+ use ruma::{
+-    EventId, UInt, assign,
++    EventId, OwnedTransactionId, UInt, assign,
+     events::{
+         AnyMessageLikeEventContent,
+         location::{AssetType as RumaAssetType, LocationContent, ZoomLevel},
+@@ -118,6 +118,10 @@ impl Timeline {
+                 formatted_body_from(Some(&caption), params.formatted_caption.map(Into::into));
+             assign!(TextMessageEventContent::plain(caption), { formatted })
+         });
++        let txn_id = params.transaction_id.and_then(|transaction_id| {
++            let transaction_id = transaction_id.trim();
++            (!transaction_id.is_empty()).then(|| OwnedTransactionId::from(transaction_id))
++        });
+ 
+         let attachment_config = AttachmentConfig {
+             info: Some(attachment_info),
+@@ -125,6 +129,7 @@ impl Timeline {
+             caption,
+             mentions: params.mentions.map(Into::into),
+             in_reply_to: in_reply_to_event_id,
++            txn_id,
+             ..Default::default()
+         };
+ 
+@@ -201,6 +206,8 @@ pub struct UploadParameters {
+     mentions: Option<Mentions>,
+     /// Optional Event ID to reply to.
+     in_reply_to: Option<String>,
++    /// Optional transaction ID to use for local echo tracking.
++    transaction_id: Option<String>,
+ }
+ 
+ /// A source for uploading a file
 diff --git a/crates/matrix-sdk/Cargo.toml b/crates/matrix-sdk/Cargo.toml
+index ab0764b..39f26ae 100644
 --- a/crates/matrix-sdk/Cargo.toml
 +++ b/crates/matrix-sdk/Cargo.toml
 @@ -160,7 +160,7 @@ zeroize.workspace = true
@@ -84,41 +183,393 @@ diff --git a/crates/matrix-sdk/Cargo.toml b/crates/matrix-sdk/Cargo.toml
  rustls-pki-types = "1.14.0"
  rustls-native-certs = "0.8.3"
  webpki-roots = "1.0.6"
-diff --git a/bindings/matrix-sdk-ffi/src/timeline/mod.rs b/bindings/matrix-sdk-ffi/src/timeline/mod.rs
---- a/bindings/matrix-sdk-ffi/src/timeline/mod.rs
-+++ b/bindings/matrix-sdk-ffi/src/timeline/mod.rs
-@@ -39,6 +39,6 @@ use mime::Mime;
- use reply::{EmbeddedEventDetails, InReplyToDetails};
- use ruma::{
--    EventId, UInt, assign,
-+    EventId, OwnedTransactionId, UInt, assign,
-     events::{
-         AnyMessageLikeEventContent,
-         location::{AssetType as RumaAssetType, LocationContent, ZoomLevel},
-@@ -118,6 +118,10 @@ impl Timeline {
-                 formatted_body_from(Some(&caption), params.formatted_caption.map(Into::into));
-             assign!(TextMessageEventContent::plain(caption), { formatted })
-         });
-+        let txn_id = params.transaction_id.and_then(|transaction_id| {
-+            let transaction_id = transaction_id.trim();
-+            (!transaction_id.is_empty()).then(|| OwnedTransactionId::from(transaction_id))
-+        });
--
+diff --git a/crates/matrix-sdk/src/lib.rs b/crates/matrix-sdk/src/lib.rs
+index 7fbbda4..2df27e0 100644
+--- a/crates/matrix-sdk/src/lib.rs
++++ b/crates/matrix-sdk/src/lib.rs
+@@ -13,6 +13,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ 
++#![recursion_limit = "256"]
+ #![doc = include_str!("../README.md")]
+ #![warn(missing_debug_implementations, missing_docs)]
+ #![cfg_attr(target_family = "wasm", allow(clippy::arc_with_non_send_sync))]
+diff --git a/bindings/matrix-sdk-ffi/src/matrix_media_uploader.rs b/bindings/matrix-sdk-ffi/src/matrix_media_uploader.rs
+new file mode 100644
+index 0000000..a9feff1
+--- /dev/null
++++ b/bindings/matrix-sdk-ffi/src/matrix_media_uploader.rs
+@@ -0,0 +1,372 @@
++// Copyright 2026 The CHATAPP project.
++//
++// Licensed under the Apache License, Version 2.0.
 +
-         let attachment_config = AttachmentConfig {
-             info: Some(attachment_info),
-@@ -125,3 +129,4 @@ impl Timeline {
-             mentions: params.mentions.map(Into::into),
-             in_reply_to: in_reply_to_event_id,
-+            txn_id,
-             ..Default::default()
-@@ -201,6 +206,8 @@ pub struct UploadParameters {
-     mentions: Option<Mentions>,
-     /// Optional Event ID to reply to.
-     in_reply_to: Option<String>,
-+    /// Optional transaction ID to use for local echo tracking.
-+    transaction_id: Option<String>,
- }
--
++//! Streams Android media file descriptors to the Matrix media repository.
++//!
++//! Kotlin opens Android `content://` URIs and transfers ownership of a detached
++//! Unix file descriptor to this module. Rust then owns the descriptor, streams
++//! the bytes with Tokio/Reqwest, optionally encrypts the attachment using the
++//! Matrix encrypted-file v2 format, and reports progress through a UniFFI
++//! callback.
 +
- /// A source for uploading a file
++use std::{collections::HashMap, fmt::Debug, sync::Arc};
++
++#[cfg(target_family = "unix")]
++use std::os::fd::FromRawFd;
++
++use aes::Aes256;
++use base64::{Engine as _, engine::general_purpose};
++use bytes::Bytes;
++use ctr::cipher::{KeyIvInit, StreamCipher};
++use futures_util::stream;
++use matrix_sdk_common::{SendOutsideWasm, SyncOutsideWasm};
++use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
++use rand::{Rng as _, rng};
++use serde_json::json;
++use sha2::{Digest as _, Sha256};
++use tokio::{
++    fs::File as TokioFile,
++    io::AsyncReadExt as _,
++    sync::{Mutex, watch},
++};
++
++use crate::{ClientError, runtime::get_runtime_handle};
++
++const CHUNK_SIZE: usize = 128 * 1024;
++const DEFAULT_VIDEO_MIME_TYPE: &str = "video/mp4";
++const ENCRYPTED_UPLOAD_MIME_TYPE: &str = "application/octet-stream";
++
++type Aes256Ctr = ctr::Ctr128BE<Aes256>;
++
++static CANCEL_UPLOADS: std::sync::LazyLock<Mutex<HashMap<String, watch::Sender<bool>>>> =
++    std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
++
++/// Upload result returned to Android so the JS layer can send the final Matrix
++/// room message without routing media bytes through the JS runtime.
++#[derive(uniffi::Record)]
++pub struct MatrixMediaUploadResult {
++    /// Matrix content URI returned by the media repository.
++    pub content_uri: String,
++    /// Whether the uploaded payload was encrypted before being sent.
++    pub encrypted: bool,
++    /// Original media size when Android/Rust can resolve it.
++    pub size: Option<u64>,
++    /// JSON payload for Matrix `content.file` when `encrypted` is true.
++    pub encrypted_file_json: Option<String>,
++}
++
++/// Callback used by Kotlin to emit React Native upload progress events.
++#[matrix_sdk_ffi_macros::export(callback_interface)]
++pub trait MatrixMediaUploadProgressListener: SendOutsideWasm + SyncOutsideWasm + Debug {
++    /// Called after each chunk is read and queued for upload.
++    fn on_upload_progress(&self, upload_id: String, current: u64, total: Option<u64>);
++}
++
++/// Uploads an Android-owned detached file descriptor through Rust.
++///
++/// The `fd` must be produced by `ParcelFileDescriptor.detachFd()` on Android.
++/// This function takes ownership via `File::from_raw_fd`; Kotlin must not close
++/// or reuse the fd after calling this function.
++#[matrix_sdk_ffi_macros::export]
++pub async fn upload_matrix_media_rust(
++    fd: i32,
++    filename: Option<String>,
++    mime_type: Option<String>,
++    homeserver_url: String,
++    access_token: String,
++    encrypt: bool,
++    upload_id: String,
++    listener: Box<dyn MatrixMediaUploadProgressListener>,
++) -> Result<MatrixMediaUploadResult, ClientError> {
++    if fd < 0 {
++        return Err(media_error("Invalid file descriptor."));
++    }
++
++    let (cancel_sender, cancel_receiver) = watch::channel(false);
++    {
++        let mut uploads = CANCEL_UPLOADS.lock().await;
++        if uploads.insert(upload_id.clone(), cancel_sender).is_some() {
++            return Err(media_error("Upload is already running."));
++        }
++    }
++
++    let listener = Arc::from(listener);
++    let result = upload_matrix_media_inner(
++        fd,
++        filename,
++        mime_type,
++        homeserver_url,
++        access_token,
++        encrypt,
++        upload_id.clone(),
++        listener,
++        cancel_receiver,
++    )
++    .await;
++
++    CANCEL_UPLOADS.lock().await.remove(&upload_id);
++    result
++}
++
++/// Requests cancellation for an active Rust upload task.
++#[matrix_sdk_ffi_macros::export]
++pub fn cancel_matrix_media_upload_rust(upload_id: String) {
++    get_runtime_handle().spawn(async move {
++        if let Some(cancel_sender) = CANCEL_UPLOADS.lock().await.remove(&upload_id) {
++            let _ = cancel_sender.send(true);
++        }
++    });
++}
++
++async fn upload_matrix_media_inner(
++    fd: i32,
++    filename: Option<String>,
++    mime_type: Option<String>,
++    homeserver_url: String,
++    access_token: String,
++    encrypt: bool,
++    upload_id: String,
++    listener: Arc<dyn MatrixMediaUploadProgressListener>,
++    cancel_receiver: watch::Receiver<bool>,
++) -> Result<MatrixMediaUploadResult, ClientError> {
++    let file = tokio_file_from_detached_fd(fd)?;
++    let total = file.metadata().await.ok().map(|metadata| metadata.len());
++    let safe_filename = resolve_upload_filename(filename, mime_type.as_deref());
++    let upload_url = build_upload_url(&homeserver_url, &safe_filename);
++    let content_type = if encrypt {
++        ENCRYPTED_UPLOAD_MIME_TYPE
++    } else {
++        mime_type.as_deref().unwrap_or(DEFAULT_VIDEO_MIME_TYPE)
++    };
++
++    let encryption = encrypt.then(create_encryption_info);
++    let encryption_result = encryption.as_ref().map(|info| info.result.clone());
++    let encryption_key_material = encryption.as_ref().map(|info| (info.key, info.iv));
++
++    let body_stream = media_body_stream(
++        file,
++        total,
++        encryption,
++        cancel_receiver.clone(),
++        upload_id.clone(),
++        listener.clone(),
++    );
++
++    let client = reqwest::Client::new();
++    let mut request = client
++        .post(upload_url)
++        .bearer_auth(access_token)
++        .header(reqwest::header::CONTENT_TYPE, content_type)
++        .body(reqwest::Body::wrap_stream(body_stream));
++
++    if let Some(total) = total {
++        request = request.header(reqwest::header::CONTENT_LENGTH, total.to_string());
++    }
++
++    let response = tokio::select! {
++        response = request.send() => response.map_err(ClientError::from)?,
++        _ = wait_for_cancellation(cancel_receiver) => {
++            return Err(media_error("Media upload was cancelled."));
++        }
++    };
++
++    let status = response.status();
++    let response_body = response.text().await.map_err(ClientError::from)?;
++    if !status.is_success() {
++        return Err(media_error(format!(
++            "Media upload failed with HTTP {status}: {response_body}"
++        )));
++    }
++
++    let content_uri = serde_json::from_str::<serde_json::Value>(&response_body)
++        .ok()
++        .and_then(|value| {
++            value.get("content_uri").and_then(|value| value.as_str()).map(str::to_owned)
++        })
++        .filter(|value| !value.trim().is_empty())
++        .ok_or_else(|| media_error("Homeserver upload response did not include content_uri."))?;
++
++    let encrypted_file_json = if let (Some((key, iv)), Some(encryption_result)) =
++        (encryption_key_material, encryption_result)
++    {
++        let encrypted_hash = encryption_result
++            .lock()
++            .await
++            .ok_or_else(|| media_error("Encrypted media hash was not finalized."))?;
++        Some(build_encrypted_file_json(&content_uri, key, iv, encrypted_hash)?)
++    } else {
++        None
++    };
++
++    Ok(MatrixMediaUploadResult {
++        content_uri,
++        encrypted: encrypt,
++        size: total,
++        encrypted_file_json,
++    })
++}
++
++#[cfg(target_family = "unix")]
++fn tokio_file_from_detached_fd(fd: i32) -> Result<TokioFile, ClientError> {
++    let std_file = unsafe { std::fs::File::from_raw_fd(fd) };
++    Ok(TokioFile::from_std(std_file))
++}
++
++#[cfg(not(target_family = "unix"))]
++fn tokio_file_from_detached_fd(_fd: i32) -> Result<TokioFile, ClientError> {
++    Err(media_error("Detached file descriptor uploads are only supported on Android/Unix targets."))
++}
++
++fn media_body_stream(
++    file: TokioFile,
++    total: Option<u64>,
++    encryption: Option<EncryptionInfo>,
++    cancel_receiver: watch::Receiver<bool>,
++    upload_id: String,
++    listener: Arc<dyn MatrixMediaUploadProgressListener>,
++) -> impl futures_util::Stream<Item = Result<Bytes, ClientError>> {
++    stream::try_unfold(
++        (file, 0_u64, encryption, cancel_receiver, upload_id, listener),
++        move |(mut file, mut current, mut encryption, cancel_receiver, upload_id, listener)| async move {
++            if *cancel_receiver.borrow() {
++                return Err(media_error("Media upload was cancelled."));
++            }
++
++            let mut chunk = vec![0_u8; CHUNK_SIZE];
++            let read =
++                file.read(&mut chunk).await.map_err(|error| media_error(error.to_string()))?;
++            if read == 0 {
++                if let Some(encryption) = encryption {
++                    let EncryptionInfo { sha256, result, .. } = encryption;
++                    let hash = sha256.finalize();
++                    let mut hash_bytes = [0_u8; 32];
++                    hash_bytes.copy_from_slice(hash.as_slice());
++                    *result.lock().await = Some(hash_bytes);
++                }
++                return Ok(None);
++            }
++
++            chunk.truncate(read);
++            if let Some(encryption) = encryption.as_mut() {
++                encryption.cipher.apply_keystream(&mut chunk);
++                encryption.sha256.update(&chunk);
++            }
++
++            current += read as u64;
++            listener.on_upload_progress(upload_id.clone(), current, total);
++
++            Ok(Some((
++                Bytes::from(chunk),
++                (file, current, encryption, cancel_receiver, upload_id, listener),
++            )))
++        },
++    )
++}
++
++async fn wait_for_cancellation(mut cancel_receiver: watch::Receiver<bool>) {
++    loop {
++        if *cancel_receiver.borrow() {
++            return;
++        }
++        if cancel_receiver.changed().await.is_err() {
++            return;
++        }
++    }
++}
++
++struct EncryptionInfo {
++    key: [u8; 32],
++    iv: [u8; 16],
++    cipher: Aes256Ctr,
++    sha256: Sha256,
++    result: Arc<Mutex<Option<[u8; 32]>>>,
++}
++
++fn create_encryption_info() -> EncryptionInfo {
++    let mut key = [0_u8; 32];
++    let mut iv = [0_u8; 16];
++    let mut rng = rng();
++
++    rng.fill_bytes(&mut key);
++    rng.fill_bytes(&mut iv[0..8]);
++
++    let cipher = Aes256Ctr::new(&key.into(), &iv.into());
++
++    EncryptionInfo { key, iv, cipher, sha256: Sha256::new(), result: Arc::new(Mutex::new(None)) }
++}
++
++fn build_encrypted_file_json(
++    content_uri: &str,
++    key: [u8; 32],
++    iv: [u8; 16],
++    sha256: [u8; 32],
++) -> Result<String, ClientError> {
++    serde_json::to_string(&json!({
++        "url": content_uri,
++        "key": {
++            "alg": "A256CTR",
++            "ext": true,
++            "k": base64_url_no_padding(&key),
++            "key_ops": ["decrypt", "encrypt"],
++            "kty": "oct"
++        },
++        "iv": base64_no_padding(&iv),
++        "hashes": {
++            "sha256": base64_no_padding(&sha256)
++        },
++        "v": "v2"
++    }))
++    .map_err(|error| media_error(error.to_string()))
++}
++
++fn build_upload_url(homeserver_url: &str, filename: &str) -> String {
++    let encoded_filename = utf8_percent_encode(filename, NON_ALPHANUMERIC).to_string();
++    format!(
++        "{}/_matrix/media/v3/upload?filename={encoded_filename}",
++        homeserver_url.trim_end_matches('/')
++    )
++}
++
++fn resolve_upload_filename(filename: Option<String>, mime_type: Option<&str>) -> String {
++    filename
++        .and_then(|value| value.split(['/', '\\']).next_back().map(str::to_owned))
++        .map(|value| {
++            value
++                .chars()
++                .map(|character| {
++                    if character.is_ascii_alphanumeric()
++                        || character == '.'
++                        || character == '_'
++                        || character == '-'
++                        || character == ' '
++                    {
++                        character
++                    } else {
++                        '_'
++                    }
++                })
++                .collect::<String>()
++        })
++        .filter(|value| !value.trim().is_empty())
++        .unwrap_or_else(|| {
++            let extension = match mime_type.unwrap_or(DEFAULT_VIDEO_MIME_TYPE) {
++                "video/quicktime" => "mov",
++                "video/webm" => "webm",
++                _ => "mp4",
++            };
++            format!("video.{}", extension)
++        })
++}
++
++fn base64_no_padding(bytes: &[u8]) -> String {
++    general_purpose::STANDARD.encode(bytes).trim_end_matches('=').to_owned()
++}
++
++fn base64_url_no_padding(bytes: &[u8]) -> String {
++    general_purpose::URL_SAFE_NO_PAD.encode(bytes)
++}
++
++fn media_error(message: impl Into<String>) -> ClientError {
++    ClientError::Generic { msg: message.into(), details: None }
++}
