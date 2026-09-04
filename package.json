@@ -61,7 +61,7 @@
     "clean": "del-cli -v android/build example/android/build example/android/app/build example/ios/build lib **/.cxx",
     "prepare": "bob build",
     "release": "release-it",
-    "postinstall": "patch-package && node scripts/download-binaries.js"
+    "postinstall": "cd .. && patch-package --patch-dir react-native-matrix-sdk-fork/patches && node react-native-matrix-sdk-fork/scripts/download-binaries.js"
   },
   "keywords": [
     "react-native",
