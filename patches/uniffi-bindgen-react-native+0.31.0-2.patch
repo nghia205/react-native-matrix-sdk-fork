@@ -98,3 +98,34 @@ index 968f72e..f71d4e4 100644
      Ok(if let Some(prettier) = prettier {
          let mut cmd = Command::new(prettier);
          if check_only {
+diff --git a/node_modules/uniffi-bindgen-react-native/typescript/dist/async-rust-call.js b/node_modules/uniffi-bindgen-react-native/typescript/dist/async-rust-call.js
+index 7088ce4..bb7ac08 100644
+--- a/node_modules/uniffi-bindgen-react-native/typescript/dist/async-rust-call.js
++++ b/node_modules/uniffi-bindgen-react-native/typescript/dist/async-rust-call.js
+@@ -52,6 +52,10 @@ async function uniffiRustCallAsync(rustCaller, rustFutureFunc, pollFunc, cancelF
+             pollResult = await pollRust((handle) => {
+                 pollFunc(rustFuture, uniffiFutureContinuationCallback, handle);
+             });
++            // Yield between wake-heavy native polls so touch and React work can run.
++            if (pollResult === UNIFFI_RUST_FUTURE_POLL_MAYBE_READY) {
++                await new Promise(resolve => setTimeout(resolve, 0));
++            }
+         } while (pollResult !== UNIFFI_RUST_FUTURE_POLL_READY);
+         // Now it's ready, all we need to do is pick up the result (and error).
+         return liftFunc(rustCaller.makeRustCall((status) => completeFunc(rustFuture, status), liftString, errorHandler));
+diff --git a/node_modules/uniffi-bindgen-react-native/typescript/src/async-rust-call.ts b/node_modules/uniffi-bindgen-react-native/typescript/src/async-rust-call.ts
+index 0ddc9b9..69503f0 100644
+--- a/node_modules/uniffi-bindgen-react-native/typescript/src/async-rust-call.ts
++++ b/node_modules/uniffi-bindgen-react-native/typescript/src/async-rust-call.ts
+@@ -90,4 +90,11 @@ export async function uniffiRustCallAsync<F, S extends UniffiRustCallStatus, T>(
+       pollResult = await pollRust((handle) => {
+         pollFunc(rustFuture, uniffiFutureContinuationCallback, handle);
+       });
++      // A native future may wake repeatedly while a large media operation is in
++      // progress. Yield a macrotask between MAYBE_READY polls so queued touch,
++      // close, and React work can run instead of monopolising the JS microtask
++      // queue. The native future remains alive and is still polled by UniFFI.
++      if (pollResult === UNIFFI_RUST_FUTURE_POLL_MAYBE_READY) {
++        await new Promise<void>(resolve => setTimeout(resolve, 0));
++      }
+     } while (pollResult !== UNIFFI_RUST_FUTURE_POLL_READY);
