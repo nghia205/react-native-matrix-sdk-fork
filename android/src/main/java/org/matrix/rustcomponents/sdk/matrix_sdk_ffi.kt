@@ -751,9 +751,6 @@ internal interface UniffiCallbackInterfaceVerificationStateListenerMethod0 : com
 internal interface UniffiCallbackInterfaceLiveLocationShareListenerMethod0 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`updates`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
 }
-internal interface UniffiCallbackInterfaceMatrixMediaUploadProgressListenerMethod0 : com.sun.jna.Callback {
-    fun callback(`uniffiHandle`: Long,`uploadId`: RustBuffer.ByValue,`current`: Long,`total`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
-}
 internal interface UniffiCallbackInterfaceNotificationSettingsDelegateMethod0 : com.sun.jna.Callback {
     fun callback(`uniffiHandle`: Long,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,)
 }
@@ -1188,25 +1185,6 @@ internal open class UniffiVTableCallbackInterfaceLiveLocationShareListener(
         `uniffiFree` = other.`uniffiFree`
         `uniffiClone` = other.`uniffiClone`
         `onUpdate` = other.`onUpdate`
-    }
-
-}
-@Structure.FieldOrder("uniffiFree", "uniffiClone", "onUploadProgress")
-internal open class UniffiVTableCallbackInterfaceMatrixMediaUploadProgressListener(
-    @JvmField internal var `uniffiFree`: UniffiCallbackInterfaceFree? = null,
-    @JvmField internal var `uniffiClone`: UniffiCallbackInterfaceClone? = null,
-    @JvmField internal var `onUploadProgress`: UniffiCallbackInterfaceMatrixMediaUploadProgressListenerMethod0? = null,
-) : Structure() {
-    class UniffiByValue(
-        `uniffiFree`: UniffiCallbackInterfaceFree? = null,
-        `uniffiClone`: UniffiCallbackInterfaceClone? = null,
-        `onUploadProgress`: UniffiCallbackInterfaceMatrixMediaUploadProgressListenerMethod0? = null,
-    ): UniffiVTableCallbackInterfaceMatrixMediaUploadProgressListener(`uniffiFree`,`uniffiClone`,`onUploadProgress`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiVTableCallbackInterfaceMatrixMediaUploadProgressListener) {
-        `uniffiFree` = other.`uniffiFree`
-        `uniffiClone` = other.`uniffiClone`
-        `onUploadProgress` = other.`onUploadProgress`
     }
 
 }
@@ -1827,10 +1805,6 @@ external fun uniffi_matrix_sdk_ffi_checksum_func_gen_transaction_id(
 external fun uniffi_matrix_sdk_ffi_checksum_func_database_contains_secrets_bundle(
 ): Short
 external fun uniffi_matrix_sdk_ffi_checksum_func_json_string_contains_secrets_bundle(
-): Short
-external fun uniffi_matrix_sdk_ffi_checksum_func_cancel_matrix_media_upload_rust(
-): Short
-external fun uniffi_matrix_sdk_ffi_checksum_func_upload_matrix_media_rust(
 ): Short
 external fun uniffi_matrix_sdk_ffi_checksum_func_init_platform(
 ): Short
@@ -2924,8 +2898,6 @@ external fun uniffi_matrix_sdk_ffi_checksum_method_verificationstatelistener_on_
 ): Short
 external fun uniffi_matrix_sdk_ffi_checksum_method_livelocationsharelistener_on_update(
 ): Short
-external fun uniffi_matrix_sdk_ffi_checksum_method_matrixmediauploadprogresslistener_on_upload_progress(
-): Short
 external fun uniffi_matrix_sdk_ffi_checksum_method_notificationsettingsdelegate_settings_did_change(
 ): Short
 external fun uniffi_matrix_sdk_ffi_checksum_method_generatedqrloginprogresslistener_on_update(
@@ -3029,7 +3001,6 @@ internal object UniffiLib {
         uniffiCallbackInterfaceIgnoredUsersListener.register(this)
         uniffiCallbackInterfaceKnockRequestsListener.register(this)
         uniffiCallbackInterfaceLiveLocationShareListener.register(this)
-        uniffiCallbackInterfaceMatrixMediaUploadProgressListener.register(this)
         uniffiCallbackInterfaceMediaPreviewConfigListener.register(this)
         uniffiCallbackInterfaceNotificationSettingsDelegate.register(this)
         uniffiCallbackInterfacePaginationStatusListener.register(this)
@@ -4335,8 +4306,6 @@ external fun uniffi_matrix_sdk_ffi_fn_init_callback_vtable_verificationstatelist
 ): Unit
 external fun uniffi_matrix_sdk_ffi_fn_init_callback_vtable_livelocationsharelistener(`vtable`: UniffiVTableCallbackInterfaceLiveLocationShareListener,
 ): Unit
-external fun uniffi_matrix_sdk_ffi_fn_init_callback_vtable_matrixmediauploadprogresslistener(`vtable`: UniffiVTableCallbackInterfaceMatrixMediaUploadProgressListener,
-): Unit
 external fun uniffi_matrix_sdk_ffi_fn_init_callback_vtable_notificationsettingsdelegate(`vtable`: UniffiVTableCallbackInterfaceNotificationSettingsDelegate,
 ): Unit
 external fun uniffi_matrix_sdk_ffi_fn_init_callback_vtable_generatedqrloginprogresslistener(`vtable`: UniffiVTableCallbackInterfaceGeneratedQrLoginProgressListener,
@@ -4417,10 +4386,6 @@ external fun uniffi_matrix_sdk_ffi_fn_func_database_contains_secrets_bundle(`dat
 ): Long
 external fun uniffi_matrix_sdk_ffi_fn_func_json_string_contains_secrets_bundle(`bundle`: RustBuffer.ByValue,`backupInfo`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
 ): RustBuffer.ByValue
-external fun uniffi_matrix_sdk_ffi_fn_func_cancel_matrix_media_upload_rust(`uploadId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-): Unit
-external fun uniffi_matrix_sdk_ffi_fn_func_upload_matrix_media_rust(`fd`: Int,`filename`: RustBuffer.ByValue,`mimeType`: RustBuffer.ByValue,`homeserverUrl`: RustBuffer.ByValue,`accessToken`: RustBuffer.ByValue,`encrypt`: Byte,`uploadId`: RustBuffer.ByValue,`listener`: Long,
-): Long
 external fun uniffi_matrix_sdk_ffi_fn_func_init_platform(`config`: RustBuffer.ByValue,`useLightweightTokioRuntime`: Byte,uniffi_out_err: UniffiRustCallStatus, 
 ): Unit
 external fun uniffi_matrix_sdk_ffi_fn_func_reload_tracing_file_writer(`configuration`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
@@ -33216,6 +33181,11 @@ public object FfiConverterTypeGalleryMessageContent: FfiConverterRustBuffer<Gall
 
 data class GalleryUploadParameters (
     /**
+     * Optional caller-created transaction ID for deterministic local-echo reconciliation.
+     */
+    var `transactionId`: kotlin.String?
+    , 
+    /**
      * Optional non-formatted caption, for clients that support it.
      */
     var `caption`: kotlin.String?
@@ -33251,6 +33221,7 @@ public object FfiConverterTypeGalleryUploadParameters: FfiConverterRustBuffer<Ga
     override fun read(buf: ByteBuffer): GalleryUploadParameters {
         return GalleryUploadParameters(
             FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
             FfiConverterOptionalTypeFormattedBody.read(buf),
             FfiConverterOptionalTypeMentions.read(buf),
             FfiConverterOptionalString.read(buf),
@@ -33258,6 +33229,7 @@ public object FfiConverterTypeGalleryUploadParameters: FfiConverterRustBuffer<Ga
     }
 
     override fun allocationSize(value: GalleryUploadParameters) = (
+            FfiConverterOptionalString.allocationSize(value.`transactionId`) +
             FfiConverterOptionalString.allocationSize(value.`caption`) +
             FfiConverterOptionalTypeFormattedBody.allocationSize(value.`formattedCaption`) +
             FfiConverterOptionalTypeMentions.allocationSize(value.`mentions`) +
@@ -33265,6 +33237,7 @@ public object FfiConverterTypeGalleryUploadParameters: FfiConverterRustBuffer<Ga
     )
 
     override fun write(value: GalleryUploadParameters, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`transactionId`, buf)
             FfiConverterOptionalString.write(value.`caption`, buf)
             FfiConverterOptionalTypeFormattedBody.write(value.`formattedCaption`, buf)
             FfiConverterOptionalTypeMentions.write(value.`mentions`, buf)
@@ -34121,70 +34094,6 @@ public object FfiConverterTypeMatrixEntity: FfiConverterRustBuffer<MatrixEntity>
     override fun write(value: MatrixEntity, buf: ByteBuffer) {
             FfiConverterTypeMatrixId.write(value.`id`, buf)
             FfiConverterSequenceString.write(value.`via`, buf)
-    }
-}
-
-
-
-/**
- * Upload result returned to Android so the JS layer can send the final Matrix
- * room message without routing media bytes through the JS runtime.
- */
-data class MatrixMediaUploadResult (
-    /**
-     * Matrix content URI returned by the media repository.
-     */
-    var `contentUri`: kotlin.String
-    , 
-    /**
-     * Whether the uploaded payload was encrypted before being sent.
-     */
-    var `encrypted`: kotlin.Boolean
-    , 
-    /**
-     * Original media size when Android/Rust can resolve it.
-     */
-    var `size`: kotlin.ULong?
-    , 
-    /**
-     * JSON payload for Matrix `content.file` when `encrypted` is true.
-     */
-    var `encryptedFileJson`: kotlin.String?
-    
-){
-    
-
-    
-
-    
-    companion object
-}
-
-/**
- * @suppress
- */
-public object FfiConverterTypeMatrixMediaUploadResult: FfiConverterRustBuffer<MatrixMediaUploadResult> {
-    override fun read(buf: ByteBuffer): MatrixMediaUploadResult {
-        return MatrixMediaUploadResult(
-            FfiConverterString.read(buf),
-            FfiConverterBoolean.read(buf),
-            FfiConverterOptionalULong.read(buf),
-            FfiConverterOptionalString.read(buf),
-        )
-    }
-
-    override fun allocationSize(value: MatrixMediaUploadResult) = (
-            FfiConverterString.allocationSize(value.`contentUri`) +
-            FfiConverterBoolean.allocationSize(value.`encrypted`) +
-            FfiConverterOptionalULong.allocationSize(value.`size`) +
-            FfiConverterOptionalString.allocationSize(value.`encryptedFileJson`)
-    )
-
-    override fun write(value: MatrixMediaUploadResult, buf: ByteBuffer) {
-            FfiConverterString.write(value.`contentUri`, buf)
-            FfiConverterBoolean.write(value.`encrypted`, buf)
-            FfiConverterOptionalULong.write(value.`size`, buf)
-            FfiConverterOptionalString.write(value.`encryptedFileJson`, buf)
     }
 }
 
@@ -43184,7 +43093,7 @@ sealed class GalleryItemInfo: Disposable  {
     
     data class Audio(
         val `audioInfo`: org.matrix.rustcomponents.sdk.AudioInfo, 
-        val `source`: org.matrix.rustcomponents.sdk.UploadSource, 
+        val `source`: org.matrix.rustcomponents.sdk.GalleryUploadSource, 
         val `caption`: kotlin.String?, 
         val `formattedCaption`: org.matrix.rustcomponents.sdk.FormattedBody?) : GalleryItemInfo()
         
@@ -43196,7 +43105,7 @@ sealed class GalleryItemInfo: Disposable  {
     
     data class File(
         val `fileInfo`: org.matrix.rustcomponents.sdk.FileInfo, 
-        val `source`: org.matrix.rustcomponents.sdk.UploadSource, 
+        val `source`: org.matrix.rustcomponents.sdk.GalleryUploadSource, 
         val `caption`: kotlin.String?, 
         val `formattedCaption`: org.matrix.rustcomponents.sdk.FormattedBody?) : GalleryItemInfo()
         
@@ -43208,7 +43117,7 @@ sealed class GalleryItemInfo: Disposable  {
     
     data class Image(
         val `imageInfo`: org.matrix.rustcomponents.sdk.ImageInfo, 
-        val `source`: org.matrix.rustcomponents.sdk.UploadSource, 
+        val `source`: org.matrix.rustcomponents.sdk.GalleryUploadSource, 
         val `caption`: kotlin.String?, 
         val `formattedCaption`: org.matrix.rustcomponents.sdk.FormattedBody?, 
         val `thumbnailSource`: org.matrix.rustcomponents.sdk.UploadSource?) : GalleryItemInfo()
@@ -43221,7 +43130,7 @@ sealed class GalleryItemInfo: Disposable  {
     
     data class Video(
         val `videoInfo`: org.matrix.rustcomponents.sdk.VideoInfo, 
-        val `source`: org.matrix.rustcomponents.sdk.UploadSource, 
+        val `source`: org.matrix.rustcomponents.sdk.GalleryUploadSource, 
         val `caption`: kotlin.String?, 
         val `formattedCaption`: org.matrix.rustcomponents.sdk.FormattedBody?, 
         val `thumbnailSource`: org.matrix.rustcomponents.sdk.UploadSource?) : GalleryItemInfo()
@@ -43298,26 +43207,26 @@ public object FfiConverterTypeGalleryItemInfo : FfiConverterRustBuffer<GalleryIt
         return when(buf.getInt()) {
             1 -> GalleryItemInfo.Audio(
                 FfiConverterTypeAudioInfo.read(buf),
-                FfiConverterTypeUploadSource.read(buf),
+                FfiConverterTypeGalleryUploadSource.read(buf),
                 FfiConverterOptionalString.read(buf),
                 FfiConverterOptionalTypeFormattedBody.read(buf),
                 )
             2 -> GalleryItemInfo.File(
                 FfiConverterTypeFileInfo.read(buf),
-                FfiConverterTypeUploadSource.read(buf),
+                FfiConverterTypeGalleryUploadSource.read(buf),
                 FfiConverterOptionalString.read(buf),
                 FfiConverterOptionalTypeFormattedBody.read(buf),
                 )
             3 -> GalleryItemInfo.Image(
                 FfiConverterTypeImageInfo.read(buf),
-                FfiConverterTypeUploadSource.read(buf),
+                FfiConverterTypeGalleryUploadSource.read(buf),
                 FfiConverterOptionalString.read(buf),
                 FfiConverterOptionalTypeFormattedBody.read(buf),
                 FfiConverterOptionalTypeUploadSource.read(buf),
                 )
             4 -> GalleryItemInfo.Video(
                 FfiConverterTypeVideoInfo.read(buf),
-                FfiConverterTypeUploadSource.read(buf),
+                FfiConverterTypeGalleryUploadSource.read(buf),
                 FfiConverterOptionalString.read(buf),
                 FfiConverterOptionalTypeFormattedBody.read(buf),
                 FfiConverterOptionalTypeUploadSource.read(buf),
@@ -43332,7 +43241,7 @@ public object FfiConverterTypeGalleryItemInfo : FfiConverterRustBuffer<GalleryIt
             (
                 4UL
                 + FfiConverterTypeAudioInfo.allocationSize(value.`audioInfo`)
-                + FfiConverterTypeUploadSource.allocationSize(value.`source`)
+                + FfiConverterTypeGalleryUploadSource.allocationSize(value.`source`)
                 + FfiConverterOptionalString.allocationSize(value.`caption`)
                 + FfiConverterOptionalTypeFormattedBody.allocationSize(value.`formattedCaption`)
             )
@@ -43342,7 +43251,7 @@ public object FfiConverterTypeGalleryItemInfo : FfiConverterRustBuffer<GalleryIt
             (
                 4UL
                 + FfiConverterTypeFileInfo.allocationSize(value.`fileInfo`)
-                + FfiConverterTypeUploadSource.allocationSize(value.`source`)
+                + FfiConverterTypeGalleryUploadSource.allocationSize(value.`source`)
                 + FfiConverterOptionalString.allocationSize(value.`caption`)
                 + FfiConverterOptionalTypeFormattedBody.allocationSize(value.`formattedCaption`)
             )
@@ -43352,7 +43261,7 @@ public object FfiConverterTypeGalleryItemInfo : FfiConverterRustBuffer<GalleryIt
             (
                 4UL
                 + FfiConverterTypeImageInfo.allocationSize(value.`imageInfo`)
-                + FfiConverterTypeUploadSource.allocationSize(value.`source`)
+                + FfiConverterTypeGalleryUploadSource.allocationSize(value.`source`)
                 + FfiConverterOptionalString.allocationSize(value.`caption`)
                 + FfiConverterOptionalTypeFormattedBody.allocationSize(value.`formattedCaption`)
                 + FfiConverterOptionalTypeUploadSource.allocationSize(value.`thumbnailSource`)
@@ -43363,7 +43272,7 @@ public object FfiConverterTypeGalleryItemInfo : FfiConverterRustBuffer<GalleryIt
             (
                 4UL
                 + FfiConverterTypeVideoInfo.allocationSize(value.`videoInfo`)
-                + FfiConverterTypeUploadSource.allocationSize(value.`source`)
+                + FfiConverterTypeGalleryUploadSource.allocationSize(value.`source`)
                 + FfiConverterOptionalString.allocationSize(value.`caption`)
                 + FfiConverterOptionalTypeFormattedBody.allocationSize(value.`formattedCaption`)
                 + FfiConverterOptionalTypeUploadSource.allocationSize(value.`thumbnailSource`)
@@ -43376,7 +43285,7 @@ public object FfiConverterTypeGalleryItemInfo : FfiConverterRustBuffer<GalleryIt
             is GalleryItemInfo.Audio -> {
                 buf.putInt(1)
                 FfiConverterTypeAudioInfo.write(value.`audioInfo`, buf)
-                FfiConverterTypeUploadSource.write(value.`source`, buf)
+                FfiConverterTypeGalleryUploadSource.write(value.`source`, buf)
                 FfiConverterOptionalString.write(value.`caption`, buf)
                 FfiConverterOptionalTypeFormattedBody.write(value.`formattedCaption`, buf)
                 Unit
@@ -43384,7 +43293,7 @@ public object FfiConverterTypeGalleryItemInfo : FfiConverterRustBuffer<GalleryIt
             is GalleryItemInfo.File -> {
                 buf.putInt(2)
                 FfiConverterTypeFileInfo.write(value.`fileInfo`, buf)
-                FfiConverterTypeUploadSource.write(value.`source`, buf)
+                FfiConverterTypeGalleryUploadSource.write(value.`source`, buf)
                 FfiConverterOptionalString.write(value.`caption`, buf)
                 FfiConverterOptionalTypeFormattedBody.write(value.`formattedCaption`, buf)
                 Unit
@@ -43392,7 +43301,7 @@ public object FfiConverterTypeGalleryItemInfo : FfiConverterRustBuffer<GalleryIt
             is GalleryItemInfo.Image -> {
                 buf.putInt(3)
                 FfiConverterTypeImageInfo.write(value.`imageInfo`, buf)
-                FfiConverterTypeUploadSource.write(value.`source`, buf)
+                FfiConverterTypeGalleryUploadSource.write(value.`source`, buf)
                 FfiConverterOptionalString.write(value.`caption`, buf)
                 FfiConverterOptionalTypeFormattedBody.write(value.`formattedCaption`, buf)
                 FfiConverterOptionalTypeUploadSource.write(value.`thumbnailSource`, buf)
@@ -43401,7 +43310,7 @@ public object FfiConverterTypeGalleryItemInfo : FfiConverterRustBuffer<GalleryIt
             is GalleryItemInfo.Video -> {
                 buf.putInt(4)
                 FfiConverterTypeVideoInfo.write(value.`videoInfo`, buf)
-                FfiConverterTypeUploadSource.write(value.`source`, buf)
+                FfiConverterTypeGalleryUploadSource.write(value.`source`, buf)
                 FfiConverterOptionalString.write(value.`caption`, buf)
                 FfiConverterOptionalTypeFormattedBody.write(value.`formattedCaption`, buf)
                 FfiConverterOptionalTypeUploadSource.write(value.`thumbnailSource`, buf)
@@ -43606,6 +43515,108 @@ public object FfiConverterTypeGalleryItemType : FfiConverterRustBuffer<GalleryIt
                 buf.putInt(5)
                 FfiConverterString.write(value.`itemtype`, buf)
                 FfiConverterString.write(value.`body`, buf)
+                Unit
+            }
+        }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
+    }
+}
+
+
+
+
+
+/**
+ * Source descriptor used only by galleries so file originals remain lazy across FFI.
+ */
+sealed class GalleryUploadSource {
+    
+    data class File(
+        val `path`: kotlin.String, 
+        val `filename`: kotlin.String, 
+        val `size`: kotlin.ULong) : GalleryUploadSource()
+        
+    {
+        
+
+        companion object
+    }
+    
+    data class Data(
+        val `bytes`: kotlin.ByteArray, 
+        val `filename`: kotlin.String, 
+        val `size`: kotlin.ULong) : GalleryUploadSource()
+        
+    {
+        
+
+        companion object
+    }
+    
+
+    
+
+    
+    
+
+
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeGalleryUploadSource : FfiConverterRustBuffer<GalleryUploadSource>{
+    override fun read(buf: ByteBuffer): GalleryUploadSource {
+        return when(buf.getInt()) {
+            1 -> GalleryUploadSource.File(
+                FfiConverterString.read(buf),
+                FfiConverterString.read(buf),
+                FfiConverterULong.read(buf),
+                )
+            2 -> GalleryUploadSource.Data(
+                FfiConverterByteArray.read(buf),
+                FfiConverterString.read(buf),
+                FfiConverterULong.read(buf),
+                )
+            else -> throw RuntimeException("invalid enum value, something is very wrong!!")
+        }
+    }
+
+    override fun allocationSize(value: GalleryUploadSource) = when(value) {
+        is GalleryUploadSource.File -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterString.allocationSize(value.`path`)
+                + FfiConverterString.allocationSize(value.`filename`)
+                + FfiConverterULong.allocationSize(value.`size`)
+            )
+        }
+        is GalleryUploadSource.Data -> {
+            // Add the size for the Int that specifies the variant plus the size needed for all fields
+            (
+                4UL
+                + FfiConverterByteArray.allocationSize(value.`bytes`)
+                + FfiConverterString.allocationSize(value.`filename`)
+                + FfiConverterULong.allocationSize(value.`size`)
+            )
+        }
+    }
+
+    override fun write(value: GalleryUploadSource, buf: ByteBuffer) {
+        when(value) {
+            is GalleryUploadSource.File -> {
+                buf.putInt(1)
+                FfiConverterString.write(value.`path`, buf)
+                FfiConverterString.write(value.`filename`, buf)
+                FfiConverterULong.write(value.`size`, buf)
+                Unit
+            }
+            is GalleryUploadSource.Data -> {
+                buf.putInt(2)
+                FfiConverterByteArray.write(value.`bytes`, buf)
+                FfiConverterString.write(value.`filename`, buf)
+                FfiConverterULong.write(value.`size`, buf)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -50977,6 +50988,8 @@ sealed class RoomException(message: String): kotlin.Exception(message) {
         
         class FailedSendingAttachment(message: String) : RoomException(message)
         
+        class AttachmentSendCancelled(message: String) : RoomException(message)
+        
 
     companion object ErrorHandler : UniffiRustCallStatusErrorHandler<RoomException> {
         override fun lift(error_buf: RustBuffer.ByValue): RoomException = FfiConverterTypeRoomError.lift(error_buf)
@@ -50997,6 +51010,7 @@ public object FfiConverterTypeRoomError : FfiConverterRustBuffer<RoomException> 
             5 -> RoomException.InvalidThumbnailData(FfiConverterString.read(buf))
             6 -> RoomException.InvalidRepliedToEventId(FfiConverterString.read(buf))
             7 -> RoomException.FailedSendingAttachment(FfiConverterString.read(buf))
+            8 -> RoomException.AttachmentSendCancelled(FfiConverterString.read(buf))
             else -> throw RuntimeException("invalid error enum value, something is very wrong!!")
         }
         
@@ -51034,6 +51048,10 @@ public object FfiConverterTypeRoomError : FfiConverterRustBuffer<RoomException> 
             }
             is RoomException.FailedSendingAttachment -> {
                 buf.putInt(7)
+                Unit
+            }
+            is RoomException.AttachmentSendCancelled -> {
+                buf.putInt(8)
                 Unit
             }
         }.let { /* this makes the `when` an expression, which ensures it is exhaustive */ }
@@ -58616,74 +58634,6 @@ public object FfiConverterTypeLiveLocationShareListener: FfiConverterCallbackInt
 
 
 
-/**
- * Callback used by Kotlin to emit React Native upload progress events.
- */
-public interface MatrixMediaUploadProgressListener {
-    
-    /**
-     * Called after each chunk is read and queued for upload.
-     */
-    fun `onUploadProgress`(`uploadId`: kotlin.String, `current`: kotlin.ULong, `total`: kotlin.ULong?)
-    
-    companion object
-}
-
-
-
-// Put the implementation in an object so we don't pollute the top-level namespace
-internal object uniffiCallbackInterfaceMatrixMediaUploadProgressListener {
-    internal object `onUploadProgress`: UniffiCallbackInterfaceMatrixMediaUploadProgressListenerMethod0 {
-        override fun callback(`uniffiHandle`: Long,`uploadId`: RustBuffer.ByValue,`current`: Long,`total`: RustBuffer.ByValue,`uniffiOutReturn`: Pointer,uniffiCallStatus: UniffiRustCallStatus,) {
-            val uniffiObj = FfiConverterTypeMatrixMediaUploadProgressListener.handleMap.get(uniffiHandle)
-            val makeCall = { ->
-                uniffiObj.`onUploadProgress`(
-                    FfiConverterString.lift(`uploadId`),
-                    FfiConverterULong.lift(`current`),
-                    FfiConverterOptionalULong.lift(`total`),
-                )
-            }
-            val writeReturn = { _: Unit -> Unit }
-            uniffiTraitInterfaceCall(uniffiCallStatus, makeCall, writeReturn)
-        }
-    }
-
-    internal object uniffiFree: UniffiCallbackInterfaceFree {
-        override fun callback(handle: Long) {
-            FfiConverterTypeMatrixMediaUploadProgressListener.handleMap.remove(handle)
-        }
-    }
-
-    internal object uniffiClone: UniffiCallbackInterfaceClone {
-        override fun callback(handle: Long): Long {
-            return FfiConverterTypeMatrixMediaUploadProgressListener.handleMap.clone(handle)
-        }
-    }
-
-    internal var vtable = UniffiVTableCallbackInterfaceMatrixMediaUploadProgressListener.UniffiByValue(
-        uniffiFree,
-        uniffiClone,
-        `onUploadProgress`,
-    )
-
-    // Registers the foreign callback with the Rust side.
-    // This method is generated for each callback interface.
-    internal fun register(lib: UniffiLib) {
-        lib.uniffi_matrix_sdk_ffi_fn_init_callback_vtable_matrixmediauploadprogresslistener(vtable)
-    }
-}
-
-/**
- * The ffiConverter which transforms the Callbacks in to handles to pass to Rust.
- *
- * @suppress
- */
-public object FfiConverterTypeMatrixMediaUploadProgressListener: FfiConverterCallbackInterface<MatrixMediaUploadProgressListener>()
-
-
-
-
-
 public interface MediaPreviewConfigListener {
     
     fun `onChange`(`mediaPreviewConfig`: MediaPreviewConfig?)
@@ -65320,40 +65270,6 @@ public typealias FfiConverterTypeTimestamp = FfiConverterULong
     )
     }
     
-
-        /**
-         * Requests cancellation for an active Rust upload task.
-         */ fun `cancelMatrixMediaUploadRust`(`uploadId`: kotlin.String)
-        = 
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_matrix_sdk_ffi_fn_func_cancel_matrix_media_upload_rust(
-    
-        FfiConverterString.lower(`uploadId`),_status)
-}
-    
-    
-
-        /**
-         * Uploads an Android-owned detached file descriptor through Rust.
-         *
-         * The `fd` must be produced by `ParcelFileDescriptor.detachFd()` on Android.
-         * This function takes ownership via `File::from_raw_fd`; Kotlin must not close
-         * or reuse the fd after calling this function.
-         */
-    @Throws(ClientException::class)
-    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
-     suspend fun `uploadMatrixMediaRust`(`fd`: kotlin.Int, `filename`: kotlin.String?, `mimeType`: kotlin.String?, `homeserverUrl`: kotlin.String, `accessToken`: kotlin.String, `encrypt`: kotlin.Boolean, `uploadId`: kotlin.String, `listener`: MatrixMediaUploadProgressListener) : MatrixMediaUploadResult {
-        return uniffiRustCallAsync(
-        UniffiLib.uniffi_matrix_sdk_ffi_fn_func_upload_matrix_media_rust(FfiConverterInt.lower(`fd`),FfiConverterOptionalString.lower(`filename`),FfiConverterOptionalString.lower(`mimeType`),FfiConverterString.lower(`homeserverUrl`),FfiConverterString.lower(`accessToken`),FfiConverterBoolean.lower(`encrypt`),FfiConverterString.lower(`uploadId`),FfiConverterTypeMatrixMediaUploadProgressListener.lower(`listener`),),
-        { future, callback, continuation -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer(future, callback, continuation) },
-        { future, continuation -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer(future, continuation) },
-        { future -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_free_rust_buffer(future) },
-        // lift function
-        { FfiConverterTypeMatrixMediaUploadResult.lift(it) },
-        // Error FFI converter
-        ClientException.ErrorHandler,
-    )
-    }
 
         /**
          * Sets up logs and the tokio runtime for the current application.

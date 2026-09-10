@@ -49,7 +49,6 @@ import nativeModule, {
   type UniffiVTableCallbackInterfaceRecoveryStateListener,
   type UniffiVTableCallbackInterfaceVerificationStateListener,
   type UniffiVTableCallbackInterfaceLiveLocationShareListener,
-  type UniffiVTableCallbackInterfaceMatrixMediaUploadProgressListener,
   type UniffiVTableCallbackInterfaceNotificationSettingsDelegate,
   type UniffiVTableCallbackInterfaceGeneratedQrLoginProgressListener,
   type UniffiVTableCallbackInterfaceGrantGeneratedQrLoginProgressListener,
@@ -293,78 +292,6 @@ export function jsonStringContainsSecretsBundle(
       /*liftString:*/ FfiConverterString.lift
     )
   );
-}
-/**
- * Requests cancellation for an active Rust upload task.
- */
-export function cancelMatrixMediaUploadRust(uploadId: string): void {
-  uniffiCaller.rustCall(
-    /*caller:*/ (callStatus) => {
-      nativeModule().ubrn_uniffi_matrix_sdk_ffi_fn_func_cancel_matrix_media_upload_rust(
-        FfiConverterString.lower(uploadId),
-        callStatus
-      );
-    },
-    /*liftString:*/ FfiConverterString.lift
-  );
-}
-/**
- * Uploads an Android-owned detached file descriptor through Rust.
- *
- * The `fd` must be produced by `ParcelFileDescriptor.detachFd()` on Android.
- * This function takes ownership via `File::from_raw_fd`; Kotlin must not close
- * or reuse the fd after calling this function.
- */
-export async function uploadMatrixMediaRust(
-  fd: /*i32*/ number,
-  filename: string | undefined,
-  mimeType: string | undefined,
-  homeserverUrl: string,
-  accessToken: string,
-  encrypt: boolean,
-  uploadId: string,
-  listener: MatrixMediaUploadProgressListener,
-  asyncOpts_?: { signal: AbortSignal }
-): Promise<MatrixMediaUploadResult> /*throws*/ {
-  const __stack = uniffiIsDebug ? new Error().stack : undefined;
-  try {
-    return await uniffiRustCallAsync(
-      /*rustCaller:*/ uniffiCaller,
-      /*rustFutureFunc:*/ () => {
-        return nativeModule().ubrn_uniffi_matrix_sdk_ffi_fn_func_upload_matrix_media_rust(
-          FfiConverterInt32.lower(fd),
-          FfiConverterOptionalString.lower(filename),
-          FfiConverterOptionalString.lower(mimeType),
-          FfiConverterString.lower(homeserverUrl),
-          FfiConverterString.lower(accessToken),
-          FfiConverterBool.lower(encrypt),
-          FfiConverterString.lower(uploadId),
-          FfiConverterTypeMatrixMediaUploadProgressListener.lower(listener)
-        );
-      },
-      /*pollFunc:*/ nativeModule()
-        .ubrn_ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer,
-      /*cancelFunc:*/ nativeModule()
-        .ubrn_ffi_matrix_sdk_ffi_rust_future_cancel_rust_buffer,
-      /*completeFunc:*/ nativeModule()
-        .ubrn_ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer,
-      /*freeFunc:*/ nativeModule()
-        .ubrn_ffi_matrix_sdk_ffi_rust_future_free_rust_buffer,
-      /*liftFunc:*/ FfiConverterTypeMatrixMediaUploadResult.lift.bind(
-        FfiConverterTypeMatrixMediaUploadResult
-      ),
-      /*liftString:*/ FfiConverterString.lift,
-      /*asyncOpts:*/ asyncOpts_,
-      /*errorHandler:*/ FfiConverterTypeClientError.lift.bind(
-        FfiConverterTypeClientError
-      )
-    );
-  } catch (__error: any) {
-    if (uniffiIsDebug && __error instanceof Error) {
-      __error.stack = __stack;
-    }
-    throw __error;
-  }
 }
 /**
  * Sets up logs and the tokio runtime for the current application.
@@ -1731,77 +1658,6 @@ const uniffiCallbackInterfaceLiveLocationShareListener: {
 // FfiConverter protocol for callback interfaces
 const FfiConverterTypeLiveLocationShareListener =
   new FfiConverterCallback<LiveLocationShareListener>();
-
-/**
- * Callback used by Kotlin to emit React Native upload progress events.
- */
-export interface MatrixMediaUploadProgressListener {
-  /**
-   * Called after each chunk is read and queued for upload.
-   */
-  onUploadProgress(
-    uploadId: string,
-    current: /*u64*/ bigint,
-    total: /*u64*/ bigint | undefined
-  ): void;
-}
-
-// Put the implementation in a struct so we don't pollute the top-level namespace
-const uniffiCallbackInterfaceMatrixMediaUploadProgressListener: {
-  vtable: UniffiVTableCallbackInterfaceMatrixMediaUploadProgressListener;
-  register: () => void;
-} = {
-  // Create the VTable using a series of closures.
-  // ts automatically converts these into C callback functions.
-  vtable: {
-    onUploadProgress: (
-      uniffiHandle: bigint,
-      uploadId: Uint8Array,
-      current: bigint,
-      total: Uint8Array
-    ) => {
-      const uniffiMakeCall = (): void => {
-        const jsCallback =
-          FfiConverterTypeMatrixMediaUploadProgressListener.lift(uniffiHandle);
-        return jsCallback.onUploadProgress(
-          FfiConverterString.lift(uploadId),
-          FfiConverterUInt64.lift(current),
-          FfiConverterOptionalUInt64.lift(total)
-        );
-      };
-      const uniffiResult = UniffiResult.ready<void>();
-      const uniffiHandleSuccess = (obj: any) => {};
-      const uniffiHandleError = (code: number, errBuf: UniffiByteArray) => {
-        UniffiResult.writeError(uniffiResult, code, errBuf);
-      };
-      uniffiTraitInterfaceCall(
-        /*makeCall:*/ uniffiMakeCall,
-        /*handleSuccess:*/ uniffiHandleSuccess,
-        /*handleError:*/ uniffiHandleError,
-        /*lowerString:*/ FfiConverterString.lower
-      );
-      return uniffiResult;
-    },
-    uniffiFree: (uniffiHandle: UniffiHandle): void => {
-      // MatrixMediaUploadProgressListener: this will throw a stale handle error if the handle isn't found.
-      FfiConverterTypeMatrixMediaUploadProgressListener.drop(uniffiHandle);
-    },
-    uniffiClone: (uniffiHandle: UniffiHandle): UniffiHandle => {
-      return FfiConverterTypeMatrixMediaUploadProgressListener.clone(
-        uniffiHandle
-      );
-    },
-  },
-  register: () => {
-    nativeModule().ubrn_uniffi_matrix_sdk_ffi_fn_init_callback_vtable_matrixmediauploadprogresslistener(
-      uniffiCallbackInterfaceMatrixMediaUploadProgressListener.vtable
-    );
-  },
-};
-
-// FfiConverter protocol for callback interfaces
-const FfiConverterTypeMatrixMediaUploadProgressListener =
-  new FfiConverterCallback<MatrixMediaUploadProgressListener>();
 
 export interface MediaPreviewConfigListener {
   onChange(mediaPreviewConfig: MediaPreviewConfig | undefined): void;
@@ -4844,6 +4700,10 @@ const FfiConverterTypeGalleryMessageContent = (() => {
 
 export type GalleryUploadParameters = {
   /**
+   * Optional caller-created transaction ID for deterministic local-echo reconciliation.
+   */
+  transactionId?: string;
+  /**
    * Optional non-formatted caption, for clients that support it.
    */
   caption?: string;
@@ -4885,6 +4745,7 @@ const FfiConverterTypeGalleryUploadParameters = (() => {
   class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
     read(from: RustBuffer): TypeName {
       return {
+        transactionId: FfiConverterOptionalString.read(from),
         caption: FfiConverterOptionalString.read(from),
         formattedCaption: FfiConverterOptionalTypeFormattedBody.read(from),
         mentions: FfiConverterOptionalTypeMentions.read(from),
@@ -4892,6 +4753,7 @@ const FfiConverterTypeGalleryUploadParameters = (() => {
       };
     }
     write(value: TypeName, into: RustBuffer): void {
+      FfiConverterOptionalString.write(value.transactionId, into);
       FfiConverterOptionalString.write(value.caption, into);
       FfiConverterOptionalTypeFormattedBody.write(value.formattedCaption, into);
       FfiConverterOptionalTypeMentions.write(value.mentions, into);
@@ -4899,6 +4761,7 @@ const FfiConverterTypeGalleryUploadParameters = (() => {
     }
     allocationSize(value: TypeName): number {
       return (
+        FfiConverterOptionalString.allocationSize(value.transactionId) +
         FfiConverterOptionalString.allocationSize(value.caption) +
         FfiConverterOptionalTypeFormattedBody.allocationSize(
           value.formattedCaption
@@ -5780,77 +5643,6 @@ const FfiConverterTypeMatrixEntity = (() => {
       return (
         FfiConverterTypeMatrixId.allocationSize(value.id) +
         FfiConverterArrayString.allocationSize(value.via)
-      );
-    }
-  }
-  return new FFIConverter();
-})();
-
-/**
- * Upload result returned to Android so the JS layer can send the final Matrix
- * room message without routing media bytes through the JS runtime.
- */
-export type MatrixMediaUploadResult = {
-  /**
-   * Matrix content URI returned by the media repository.
-   */
-  contentUri: string;
-  /**
-   * Whether the uploaded payload was encrypted before being sent.
-   */
-  encrypted: boolean;
-  /**
-   * Original media size when Android/Rust can resolve it.
-   */
-  size?: /*u64*/ bigint;
-  /**
-   * JSON payload for Matrix `content.file` when `encrypted` is true.
-   */
-  encryptedFileJson?: string;
-};
-
-/**
- * Generated factory for {@link MatrixMediaUploadResult} record objects.
- */
-export const MatrixMediaUploadResult = (() => {
-  const defaults = () => ({});
-  const create = (() => {
-    return uniffiCreateRecord<
-      MatrixMediaUploadResult,
-      ReturnType<typeof defaults>
-    >(defaults);
-  })();
-  return Object.freeze({
-    create,
-    new: create,
-    defaults: () =>
-      Object.freeze(defaults()) as Partial<MatrixMediaUploadResult>,
-  });
-})();
-
-const FfiConverterTypeMatrixMediaUploadResult = (() => {
-  type TypeName = MatrixMediaUploadResult;
-  class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
-    read(from: RustBuffer): TypeName {
-      return {
-        contentUri: FfiConverterString.read(from),
-        encrypted: FfiConverterBool.read(from),
-        size: FfiConverterOptionalUInt64.read(from),
-        encryptedFileJson: FfiConverterOptionalString.read(from),
-      };
-    }
-    write(value: TypeName, into: RustBuffer): void {
-      FfiConverterString.write(value.contentUri, into);
-      FfiConverterBool.write(value.encrypted, into);
-      FfiConverterOptionalUInt64.write(value.size, into);
-      FfiConverterOptionalString.write(value.encryptedFileJson, into);
-    }
-    allocationSize(value: TypeName): number {
-      return (
-        FfiConverterString.allocationSize(value.contentUri) +
-        FfiConverterBool.allocationSize(value.encrypted) +
-        FfiConverterOptionalUInt64.allocationSize(value.size) +
-        FfiConverterOptionalString.allocationSize(value.encryptedFileJson)
       );
     }
   }
@@ -18717,7 +18509,7 @@ export const GalleryItemInfo = (() => {
     tag: GalleryItemInfo_Tags.Audio;
     inner: Readonly<{
       audioInfo: AudioInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
     }>;
@@ -18732,13 +18524,13 @@ export const GalleryItemInfo = (() => {
     readonly tag = GalleryItemInfo_Tags.Audio;
     readonly inner: Readonly<{
       audioInfo: AudioInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
     }>;
     constructor(inner: {
       audioInfo: AudioInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
     }) {
@@ -18748,7 +18540,7 @@ export const GalleryItemInfo = (() => {
 
     static new(inner: {
       audioInfo: AudioInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
     }): Audio_ {
@@ -18764,7 +18556,7 @@ export const GalleryItemInfo = (() => {
     tag: GalleryItemInfo_Tags.File;
     inner: Readonly<{
       fileInfo: FileInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
     }>;
@@ -18779,13 +18571,13 @@ export const GalleryItemInfo = (() => {
     readonly tag = GalleryItemInfo_Tags.File;
     readonly inner: Readonly<{
       fileInfo: FileInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
     }>;
     constructor(inner: {
       fileInfo: FileInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
     }) {
@@ -18795,7 +18587,7 @@ export const GalleryItemInfo = (() => {
 
     static new(inner: {
       fileInfo: FileInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
     }): File_ {
@@ -18811,7 +18603,7 @@ export const GalleryItemInfo = (() => {
     tag: GalleryItemInfo_Tags.Image;
     inner: Readonly<{
       imageInfo: ImageInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
       thumbnailSource: UploadSource | undefined;
@@ -18827,14 +18619,14 @@ export const GalleryItemInfo = (() => {
     readonly tag = GalleryItemInfo_Tags.Image;
     readonly inner: Readonly<{
       imageInfo: ImageInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
       thumbnailSource: UploadSource | undefined;
     }>;
     constructor(inner: {
       imageInfo: ImageInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
       thumbnailSource: UploadSource | undefined;
@@ -18845,7 +18637,7 @@ export const GalleryItemInfo = (() => {
 
     static new(inner: {
       imageInfo: ImageInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
       thumbnailSource: UploadSource | undefined;
@@ -18862,7 +18654,7 @@ export const GalleryItemInfo = (() => {
     tag: GalleryItemInfo_Tags.Video;
     inner: Readonly<{
       videoInfo: VideoInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
       thumbnailSource: UploadSource | undefined;
@@ -18878,14 +18670,14 @@ export const GalleryItemInfo = (() => {
     readonly tag = GalleryItemInfo_Tags.Video;
     readonly inner: Readonly<{
       videoInfo: VideoInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
       thumbnailSource: UploadSource | undefined;
     }>;
     constructor(inner: {
       videoInfo: VideoInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
       thumbnailSource: UploadSource | undefined;
@@ -18896,7 +18688,7 @@ export const GalleryItemInfo = (() => {
 
     static new(inner: {
       videoInfo: VideoInfo;
-      source: UploadSource;
+      source: GalleryUploadSource;
       caption: string | undefined;
       formattedCaption: FormattedBody | undefined;
       thumbnailSource: UploadSource | undefined;
@@ -18936,21 +18728,21 @@ const FfiConverterTypeGalleryItemInfo = (() => {
         case 1:
           return new GalleryItemInfo.Audio({
             audioInfo: FfiConverterTypeAudioInfo.read(from),
-            source: FfiConverterTypeUploadSource.read(from),
+            source: FfiConverterTypeGalleryUploadSource.read(from),
             caption: FfiConverterOptionalString.read(from),
             formattedCaption: FfiConverterOptionalTypeFormattedBody.read(from),
           });
         case 2:
           return new GalleryItemInfo.File({
             fileInfo: FfiConverterTypeFileInfo.read(from),
-            source: FfiConverterTypeUploadSource.read(from),
+            source: FfiConverterTypeGalleryUploadSource.read(from),
             caption: FfiConverterOptionalString.read(from),
             formattedCaption: FfiConverterOptionalTypeFormattedBody.read(from),
           });
         case 3:
           return new GalleryItemInfo.Image({
             imageInfo: FfiConverterTypeImageInfo.read(from),
-            source: FfiConverterTypeUploadSource.read(from),
+            source: FfiConverterTypeGalleryUploadSource.read(from),
             caption: FfiConverterOptionalString.read(from),
             formattedCaption: FfiConverterOptionalTypeFormattedBody.read(from),
             thumbnailSource: FfiConverterOptionalTypeUploadSource.read(from),
@@ -18958,7 +18750,7 @@ const FfiConverterTypeGalleryItemInfo = (() => {
         case 4:
           return new GalleryItemInfo.Video({
             videoInfo: FfiConverterTypeVideoInfo.read(from),
-            source: FfiConverterTypeUploadSource.read(from),
+            source: FfiConverterTypeGalleryUploadSource.read(from),
             caption: FfiConverterOptionalString.read(from),
             formattedCaption: FfiConverterOptionalTypeFormattedBody.read(from),
             thumbnailSource: FfiConverterOptionalTypeUploadSource.read(from),
@@ -18973,7 +18765,7 @@ const FfiConverterTypeGalleryItemInfo = (() => {
           ordinalConverter.write(1, into);
           const inner = value.inner;
           FfiConverterTypeAudioInfo.write(inner.audioInfo, into);
-          FfiConverterTypeUploadSource.write(inner.source, into);
+          FfiConverterTypeGalleryUploadSource.write(inner.source, into);
           FfiConverterOptionalString.write(inner.caption, into);
           FfiConverterOptionalTypeFormattedBody.write(
             inner.formattedCaption,
@@ -18985,7 +18777,7 @@ const FfiConverterTypeGalleryItemInfo = (() => {
           ordinalConverter.write(2, into);
           const inner = value.inner;
           FfiConverterTypeFileInfo.write(inner.fileInfo, into);
-          FfiConverterTypeUploadSource.write(inner.source, into);
+          FfiConverterTypeGalleryUploadSource.write(inner.source, into);
           FfiConverterOptionalString.write(inner.caption, into);
           FfiConverterOptionalTypeFormattedBody.write(
             inner.formattedCaption,
@@ -18997,7 +18789,7 @@ const FfiConverterTypeGalleryItemInfo = (() => {
           ordinalConverter.write(3, into);
           const inner = value.inner;
           FfiConverterTypeImageInfo.write(inner.imageInfo, into);
-          FfiConverterTypeUploadSource.write(inner.source, into);
+          FfiConverterTypeGalleryUploadSource.write(inner.source, into);
           FfiConverterOptionalString.write(inner.caption, into);
           FfiConverterOptionalTypeFormattedBody.write(
             inner.formattedCaption,
@@ -19013,7 +18805,7 @@ const FfiConverterTypeGalleryItemInfo = (() => {
           ordinalConverter.write(4, into);
           const inner = value.inner;
           FfiConverterTypeVideoInfo.write(inner.videoInfo, into);
-          FfiConverterTypeUploadSource.write(inner.source, into);
+          FfiConverterTypeGalleryUploadSource.write(inner.source, into);
           FfiConverterOptionalString.write(inner.caption, into);
           FfiConverterOptionalTypeFormattedBody.write(
             inner.formattedCaption,
@@ -19036,7 +18828,9 @@ const FfiConverterTypeGalleryItemInfo = (() => {
           const inner = value.inner;
           let size = ordinalConverter.allocationSize(1);
           size += FfiConverterTypeAudioInfo.allocationSize(inner.audioInfo);
-          size += FfiConverterTypeUploadSource.allocationSize(inner.source);
+          size += FfiConverterTypeGalleryUploadSource.allocationSize(
+            inner.source
+          );
           size += FfiConverterOptionalString.allocationSize(inner.caption);
           size += FfiConverterOptionalTypeFormattedBody.allocationSize(
             inner.formattedCaption
@@ -19047,7 +18841,9 @@ const FfiConverterTypeGalleryItemInfo = (() => {
           const inner = value.inner;
           let size = ordinalConverter.allocationSize(2);
           size += FfiConverterTypeFileInfo.allocationSize(inner.fileInfo);
-          size += FfiConverterTypeUploadSource.allocationSize(inner.source);
+          size += FfiConverterTypeGalleryUploadSource.allocationSize(
+            inner.source
+          );
           size += FfiConverterOptionalString.allocationSize(inner.caption);
           size += FfiConverterOptionalTypeFormattedBody.allocationSize(
             inner.formattedCaption
@@ -19058,7 +18854,9 @@ const FfiConverterTypeGalleryItemInfo = (() => {
           const inner = value.inner;
           let size = ordinalConverter.allocationSize(3);
           size += FfiConverterTypeImageInfo.allocationSize(inner.imageInfo);
-          size += FfiConverterTypeUploadSource.allocationSize(inner.source);
+          size += FfiConverterTypeGalleryUploadSource.allocationSize(
+            inner.source
+          );
           size += FfiConverterOptionalString.allocationSize(inner.caption);
           size += FfiConverterOptionalTypeFormattedBody.allocationSize(
             inner.formattedCaption
@@ -19072,7 +18870,9 @@ const FfiConverterTypeGalleryItemInfo = (() => {
           const inner = value.inner;
           let size = ordinalConverter.allocationSize(4);
           size += FfiConverterTypeVideoInfo.allocationSize(inner.videoInfo);
-          size += FfiConverterTypeUploadSource.allocationSize(inner.source);
+          size += FfiConverterTypeGalleryUploadSource.allocationSize(
+            inner.source
+          );
           size += FfiConverterOptionalString.allocationSize(inner.caption);
           size += FfiConverterOptionalTypeFormattedBody.allocationSize(
             inner.formattedCaption
@@ -19361,6 +19161,191 @@ const FfiConverterTypeGalleryItemType = (() => {
           let size = ordinalConverter.allocationSize(5);
           size += FfiConverterString.allocationSize(inner.itemtype);
           size += FfiConverterString.allocationSize(inner.body);
+          return size;
+        }
+        default:
+          throw new UniffiInternalError.UnexpectedEnumCase();
+      }
+    }
+  }
+  return new FFIConverter();
+})();
+
+// Enum: GalleryUploadSource
+export enum GalleryUploadSource_Tags {
+  File = 'File',
+  Data = 'Data',
+}
+/**
+ * Source descriptor used only by galleries so file originals remain lazy across FFI.
+ */
+export const GalleryUploadSource = (() => {
+  type File__interface = {
+    tag: GalleryUploadSource_Tags.File;
+    inner: Readonly<{ path: string; filename: string; size: /*u64*/ bigint }>;
+  };
+
+  class File_ extends UniffiEnum implements File__interface {
+    /**
+     * @private
+     * This field is private and should not be used, use `tag` instead.
+     */
+    readonly [uniffiTypeNameSymbol] = 'GalleryUploadSource';
+    readonly tag = GalleryUploadSource_Tags.File;
+    readonly inner: Readonly<{
+      path: string;
+      filename: string;
+      size: /*u64*/ bigint;
+    }>;
+    constructor(inner: {
+      path: string;
+      filename: string;
+      size: /*u64*/ bigint;
+    }) {
+      super('GalleryUploadSource', 'File');
+      this.inner = Object.freeze(inner);
+    }
+
+    static new(inner: {
+      path: string;
+      filename: string;
+      size: /*u64*/ bigint;
+    }): File_ {
+      return new File_(inner);
+    }
+
+    static instanceOf(obj: any): obj is File_ {
+      return obj.tag === GalleryUploadSource_Tags.File;
+    }
+  }
+
+  type Data__interface = {
+    tag: GalleryUploadSource_Tags.Data;
+    inner: Readonly<{
+      bytes: ArrayBuffer;
+      filename: string;
+      size: /*u64*/ bigint;
+    }>;
+  };
+
+  class Data_ extends UniffiEnum implements Data__interface {
+    /**
+     * @private
+     * This field is private and should not be used, use `tag` instead.
+     */
+    readonly [uniffiTypeNameSymbol] = 'GalleryUploadSource';
+    readonly tag = GalleryUploadSource_Tags.Data;
+    readonly inner: Readonly<{
+      bytes: ArrayBuffer;
+      filename: string;
+      size: /*u64*/ bigint;
+    }>;
+    constructor(inner: {
+      bytes: ArrayBuffer;
+      filename: string;
+      size: /*u64*/ bigint;
+    }) {
+      super('GalleryUploadSource', 'Data');
+      this.inner = Object.freeze(inner);
+    }
+
+    static new(inner: {
+      bytes: ArrayBuffer;
+      filename: string;
+      size: /*u64*/ bigint;
+    }): Data_ {
+      return new Data_(inner);
+    }
+
+    static instanceOf(obj: any): obj is Data_ {
+      return obj.tag === GalleryUploadSource_Tags.Data;
+    }
+  }
+
+  function instanceOf(obj: any): obj is GalleryUploadSource {
+    return obj[uniffiTypeNameSymbol] === 'GalleryUploadSource';
+  }
+
+  return Object.freeze({
+    instanceOf,
+    File: File_,
+    Data: Data_,
+  });
+})();
+
+/**
+ * Source descriptor used only by galleries so file originals remain lazy across FFI.
+ */
+
+export type GalleryUploadSource = InstanceType<
+  (typeof GalleryUploadSource)[keyof Omit<
+    typeof GalleryUploadSource,
+    'instanceOf'
+  >]
+>;
+
+// FfiConverter for enum GalleryUploadSource
+const FfiConverterTypeGalleryUploadSource = (() => {
+  const ordinalConverter = FfiConverterInt32;
+  type TypeName = GalleryUploadSource;
+  class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+    read(from: RustBuffer): TypeName {
+      switch (ordinalConverter.read(from)) {
+        case 1:
+          return new GalleryUploadSource.File({
+            path: FfiConverterString.read(from),
+            filename: FfiConverterString.read(from),
+            size: FfiConverterUInt64.read(from),
+          });
+        case 2:
+          return new GalleryUploadSource.Data({
+            bytes: FfiConverterArrayBuffer.read(from),
+            filename: FfiConverterString.read(from),
+            size: FfiConverterUInt64.read(from),
+          });
+        default:
+          throw new UniffiInternalError.UnexpectedEnumCase();
+      }
+    }
+    write(value: TypeName, into: RustBuffer): void {
+      switch (value.tag) {
+        case GalleryUploadSource_Tags.File: {
+          ordinalConverter.write(1, into);
+          const inner = value.inner;
+          FfiConverterString.write(inner.path, into);
+          FfiConverterString.write(inner.filename, into);
+          FfiConverterUInt64.write(inner.size, into);
+          return;
+        }
+        case GalleryUploadSource_Tags.Data: {
+          ordinalConverter.write(2, into);
+          const inner = value.inner;
+          FfiConverterArrayBuffer.write(inner.bytes, into);
+          FfiConverterString.write(inner.filename, into);
+          FfiConverterUInt64.write(inner.size, into);
+          return;
+        }
+        default:
+          // Throwing from here means that GalleryUploadSource_Tags hasn't matched an ordinal.
+          throw new UniffiInternalError.UnexpectedEnumCase();
+      }
+    }
+    allocationSize(value: TypeName): number {
+      switch (value.tag) {
+        case GalleryUploadSource_Tags.File: {
+          const inner = value.inner;
+          let size = ordinalConverter.allocationSize(1);
+          size += FfiConverterString.allocationSize(inner.path);
+          size += FfiConverterString.allocationSize(inner.filename);
+          size += FfiConverterUInt64.allocationSize(inner.size);
+          return size;
+        }
+        case GalleryUploadSource_Tags.Data: {
+          const inner = value.inner;
+          let size = ordinalConverter.allocationSize(2);
+          size += FfiConverterArrayBuffer.allocationSize(inner.bytes);
+          size += FfiConverterString.allocationSize(inner.filename);
+          size += FfiConverterUInt64.allocationSize(inner.size);
           return size;
         }
         default:
@@ -33171,6 +33156,7 @@ export enum RoomError_Tags {
   InvalidThumbnailData = 'InvalidThumbnailData',
   InvalidRepliedToEventId = 'InvalidRepliedToEventId',
   FailedSendingAttachment = 'FailedSendingAttachment',
+  AttachmentSendCancelled = 'AttachmentSendCancelled',
 }
 export const RoomError = (() => {
   class InvalidAttachmentData extends UniffiError {
@@ -33327,6 +33313,28 @@ export const RoomError = (() => {
       return instanceOf(e) && (e as any)[variantOrdinalSymbol] === 7;
     }
   }
+  class AttachmentSendCancelled extends UniffiError {
+    /**
+     * @private
+     * This field is private and should not be used.
+     */
+    readonly [uniffiTypeNameSymbol]: string = 'RoomError';
+    /**
+     * @private
+     * This field is private and should not be used.
+     */
+    readonly [variantOrdinalSymbol] = 8;
+
+    readonly tag = RoomError_Tags.AttachmentSendCancelled;
+
+    constructor(message: string) {
+      super('RoomError', 'AttachmentSendCancelled', message);
+    }
+
+    static instanceOf(e: any): e is AttachmentSendCancelled {
+      return instanceOf(e) && (e as any)[variantOrdinalSymbol] === 8;
+    }
+  }
 
   // Utility function which does not rely on instanceof.
   function instanceOf(e: any): e is RoomError {
@@ -33340,6 +33348,7 @@ export const RoomError = (() => {
     InvalidThumbnailData,
     InvalidRepliedToEventId,
     FailedSendingAttachment,
+    AttachmentSendCancelled,
     instanceOf,
   };
 })();
@@ -33386,6 +33395,11 @@ const FfiConverterTypeRoomError = (() => {
 
         case 7:
           return new RoomError.FailedSendingAttachment(
+            FfiConverterString.read(from)
+          );
+
+        case 8:
+          return new RoomError.AttachmentSendCancelled(
             FfiConverterString.read(from)
           );
 
@@ -71288,22 +71302,6 @@ function uniffiEnsureInitialized() {
     );
   }
   if (
-    nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_func_cancel_matrix_media_upload_rust() !==
-    9817
-  ) {
-    throw new UniffiInternalError.ApiChecksumMismatch(
-      'uniffi_matrix_sdk_ffi_checksum_func_cancel_matrix_media_upload_rust'
-    );
-  }
-  if (
-    nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_func_upload_matrix_media_rust() !==
-    58738
-  ) {
-    throw new UniffiInternalError.ApiChecksumMismatch(
-      'uniffi_matrix_sdk_ffi_checksum_func_upload_matrix_media_rust'
-    );
-  }
-  if (
     nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_func_init_platform() !==
     14462
   ) {
@@ -75672,14 +75670,6 @@ function uniffiEnsureInitialized() {
     );
   }
   if (
-    nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_method_matrixmediauploadprogresslistener_on_upload_progress() !==
-    10617
-  ) {
-    throw new UniffiInternalError.ApiChecksumMismatch(
-      'uniffi_matrix_sdk_ffi_checksum_method_matrixmediauploadprogresslistener_on_upload_progress'
-    );
-  }
-  if (
     nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_method_notificationsettingsdelegate_settings_did_change() !==
     52554
   ) {
@@ -75983,7 +75973,6 @@ function uniffiEnsureInitialized() {
   uniffiCallbackInterfaceIgnoredUsersListener.register();
   uniffiCallbackInterfaceKnockRequestsListener.register();
   uniffiCallbackInterfaceLiveLocationShareListener.register();
-  uniffiCallbackInterfaceMatrixMediaUploadProgressListener.register();
   uniffiCallbackInterfaceMediaPreviewConfigListener.register();
   uniffiCallbackInterfaceNotificationSettingsDelegate.register();
   uniffiCallbackInterfacePaginationStatusListener.register();
@@ -76076,6 +76065,7 @@ export default Object.freeze({
     FfiConverterTypeGalleryItemType,
     FfiConverterTypeGalleryMessageContent,
     FfiConverterTypeGalleryUploadParameters,
+    FfiConverterTypeGalleryUploadSource,
     FfiConverterTypeGeneratedQrLoginProgress,
     FfiConverterTypeGlobalSearchIterator,
     FfiConverterTypeGlobalSearchResult,
@@ -76116,7 +76106,6 @@ export default Object.freeze({
     FfiConverterTypeLoginWithQrCodeHandler,
     FfiConverterTypeMatrixEntity,
     FfiConverterTypeMatrixId,
-    FfiConverterTypeMatrixMediaUploadResult,
     FfiConverterTypeMediaFileHandle,
     FfiConverterTypeMediaInfoError,
     FfiConverterTypeMediaPreviewConfig,
