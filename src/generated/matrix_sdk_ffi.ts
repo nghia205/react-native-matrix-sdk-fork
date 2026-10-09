@@ -7671,6 +7671,54 @@ const FfiConverterTypeRoomInfo = (() => {
   return new FFIConverter();
 })();
 
+/**
+ * Counts from importing a standard Matrix key file; existing sessions can yield zero new imports.
+ */
+export type RoomKeyImportCounts = {
+  importedCount: /*u64*/ bigint;
+  totalCount: /*u64*/ bigint;
+};
+
+/**
+ * Generated factory for {@link RoomKeyImportCounts} record objects.
+ */
+export const RoomKeyImportCounts = (() => {
+  const defaults = () => ({});
+  const create = (() => {
+    return uniffiCreateRecord<RoomKeyImportCounts, ReturnType<typeof defaults>>(
+      defaults
+    );
+  })();
+  return Object.freeze({
+    create,
+    new: create,
+    defaults: () => Object.freeze(defaults()) as Partial<RoomKeyImportCounts>,
+  });
+})();
+
+const FfiConverterTypeRoomKeyImportCounts = (() => {
+  type TypeName = RoomKeyImportCounts;
+  class FFIConverter extends AbstractFfiConverterByteArray<TypeName> {
+    read(from: RustBuffer): TypeName {
+      return {
+        importedCount: FfiConverterUInt64.read(from),
+        totalCount: FfiConverterUInt64.read(from),
+      };
+    }
+    write(value: TypeName, into: RustBuffer): void {
+      FfiConverterUInt64.write(value.importedCount, into);
+      FfiConverterUInt64.write(value.totalCount, into);
+    }
+    allocationSize(value: TypeName): number {
+      return (
+        FfiConverterUInt64.allocationSize(value.importedCount) +
+        FfiConverterUInt64.allocationSize(value.totalCount)
+      );
+    }
+  }
+  return new FFIConverter();
+})();
+
 export type RoomListLoadingStateResult = {
   state: RoomListLoadingState;
   stateStream: TaskHandleLike;
@@ -50803,6 +50851,16 @@ export interface EncryptionLike {
     asyncOpts_?: { signal: AbortSignal }
   ) /*throws*/ : Promise<string>;
   /**
+   * Export every locally held room session to a password-protected Matrix text file.
+   * `path` must name an app-owned staging file; `passphrase` is used byte-for-byte.
+   * Native applications own the destination picker and must remove staging files after use.
+   */
+  exportRoomKeys(
+    path: string,
+    passphrase: string,
+    asyncOpts_?: { signal: AbortSignal }
+  ) /*throws*/ : Promise<void>;
+  /**
    * Does the user have other devices that the current device can verify
    * against?
    *
@@ -50812,6 +50870,16 @@ export interface EncryptionLike {
   hasDevicesToVerifyAgainst(asyncOpts_?: {
     signal: AbortSignal;
   }) /*throws*/ : Promise<boolean>;
+  /**
+   * Import a bounded app-owned copy of a Matrix key file into this client's crypto store.
+   * `path` is a native filesystem path; `passphrase` must match the export password exactly.
+   * Returns imported/total counts without exposing session keys or private file paths.
+   */
+  importRoomKeys(
+    path: string,
+    passphrase: string,
+    asyncOpts_?: { signal: AbortSignal }
+  ) /*throws*/ : Promise<RoomKeyImportCounts>;
   /**
    * This method will import all the private cross-signing keys and
    * the private part of a backup key and its accompanying version into the
@@ -51194,6 +51262,50 @@ export class Encryption extends UniffiAbstractObject implements EncryptionLike {
   }
 
   /**
+   * Export every locally held room session to a password-protected Matrix text file.
+   * `path` must name an app-owned staging file; `passphrase` is used byte-for-byte.
+   * Native applications own the destination picker and must remove staging files after use.
+   */
+  async exportRoomKeys(
+    path: string,
+    passphrase: string,
+    asyncOpts_?: { signal: AbortSignal }
+  ): Promise<void> /*throws*/ {
+    const __stack = uniffiIsDebug ? new Error().stack : undefined;
+    try {
+      return await uniffiRustCallAsync(
+        /*rustCaller:*/ uniffiCaller,
+        /*rustFutureFunc:*/ () => {
+          return nativeModule().ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_export_room_keys(
+            uniffiTypeEncryptionObjectFactory.clonePointer(this),
+            FfiConverterString.lower(path),
+            FfiConverterString.lower(passphrase)
+          );
+        },
+        /*pollFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_poll_void,
+        /*cancelFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_cancel_void,
+        /*completeFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_complete_void,
+        /*freeFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_free_void,
+        /*liftFunc:*/ (_v) => {},
+        /*liftString:*/ FfiConverterString.lift,
+        /*asyncOpts:*/ asyncOpts_,
+        /*errorHandler:*/ FfiConverterTypeClientError.lift.bind(
+          FfiConverterTypeClientError
+        )
+      );
+    } catch (__error: any) {
+      if (uniffiIsDebug && __error instanceof Error) {
+        __error.stack = __stack;
+      }
+      throw __error;
+    }
+  }
+
+  /**
    * Does the user have other devices that the current device can verify
    * against?
    *
@@ -51221,6 +51333,52 @@ export class Encryption extends UniffiAbstractObject implements EncryptionLike {
         /*freeFunc:*/ nativeModule()
           .ubrn_ffi_matrix_sdk_ffi_rust_future_free_i8,
         /*liftFunc:*/ FfiConverterBool.lift.bind(FfiConverterBool),
+        /*liftString:*/ FfiConverterString.lift,
+        /*asyncOpts:*/ asyncOpts_,
+        /*errorHandler:*/ FfiConverterTypeClientError.lift.bind(
+          FfiConverterTypeClientError
+        )
+      );
+    } catch (__error: any) {
+      if (uniffiIsDebug && __error instanceof Error) {
+        __error.stack = __stack;
+      }
+      throw __error;
+    }
+  }
+
+  /**
+   * Import a bounded app-owned copy of a Matrix key file into this client's crypto store.
+   * `path` is a native filesystem path; `passphrase` must match the export password exactly.
+   * Returns imported/total counts without exposing session keys or private file paths.
+   */
+  async importRoomKeys(
+    path: string,
+    passphrase: string,
+    asyncOpts_?: { signal: AbortSignal }
+  ): Promise<RoomKeyImportCounts> /*throws*/ {
+    const __stack = uniffiIsDebug ? new Error().stack : undefined;
+    try {
+      return await uniffiRustCallAsync(
+        /*rustCaller:*/ uniffiCaller,
+        /*rustFutureFunc:*/ () => {
+          return nativeModule().ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_import_room_keys(
+            uniffiTypeEncryptionObjectFactory.clonePointer(this),
+            FfiConverterString.lower(path),
+            FfiConverterString.lower(passphrase)
+          );
+        },
+        /*pollFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer,
+        /*cancelFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_cancel_rust_buffer,
+        /*completeFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer,
+        /*freeFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_free_rust_buffer,
+        /*liftFunc:*/ FfiConverterTypeRoomKeyImportCounts.lift.bind(
+          FfiConverterTypeRoomKeyImportCounts
+        ),
         /*liftString:*/ FfiConverterString.lift,
         /*asyncOpts:*/ asyncOpts_,
         /*errorHandler:*/ FfiConverterTypeClientError.lift.bind(
@@ -72742,11 +72900,27 @@ function uniffiEnsureInitialized() {
     );
   }
   if (
+    nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_export_room_keys() !==
+    49305
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      'uniffi_matrix_sdk_ffi_checksum_method_encryption_export_room_keys'
+    );
+  }
+  if (
     nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against() !==
     50754
   ) {
     throw new UniffiInternalError.ApiChecksumMismatch(
       'uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against'
+    );
+  }
+  if (
+    nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_import_room_keys() !==
+    27777
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      'uniffi_matrix_sdk_ffi_checksum_method_encryption_import_room_keys'
     );
   }
   if (
@@ -76180,6 +76354,7 @@ export default Object.freeze({
     FfiConverterTypeRoomHero,
     FfiConverterTypeRoomHistoryVisibility,
     FfiConverterTypeRoomInfo,
+    FfiConverterTypeRoomKeyImportCounts,
     FfiConverterTypeRoomList,
     FfiConverterTypeRoomListDynamicEntriesController,
     FfiConverterTypeRoomListEntriesDynamicFilterKind,

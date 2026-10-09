@@ -765,8 +765,18 @@ interface NativeModuleInterface {
     passphrase: Uint8Array,
     progressListener: bigint
   ): bigint;
+  ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_export_room_keys(
+    ptr: bigint,
+    path: Uint8Array,
+    passphrase: Uint8Array
+  ): bigint;
   ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_has_devices_to_verify_against(
     ptr: bigint
+  ): bigint;
+  ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_import_room_keys(
+    ptr: bigint,
+    path: Uint8Array,
+    passphrase: Uint8Array
   ): bigint;
   ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_import_secrets_bundle(
     ptr: bigint,
@@ -3140,7 +3150,9 @@ interface NativeModuleInterface {
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_ed25519_key(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_enable_backups(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_enable_recovery(): number;
+  ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_export_room_keys(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against(): number;
+  ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_import_room_keys(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_import_secrets_bundle(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_is_last_device(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_recover(): number;

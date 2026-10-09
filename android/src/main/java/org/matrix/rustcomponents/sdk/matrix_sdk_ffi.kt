@@ -2166,7 +2166,11 @@ external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_enable_backups(
 ): Short
 external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_enable_recovery(
 ): Short
+external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_export_room_keys(
+): Short
 external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against(
+): Short
+external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_import_room_keys(
 ): Short
 external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_import_secrets_bundle(
 ): Short
@@ -3392,7 +3396,11 @@ external fun uniffi_matrix_sdk_ffi_fn_method_encryption_enable_backups(`ptr`: Lo
 ): Long
 external fun uniffi_matrix_sdk_ffi_fn_method_encryption_enable_recovery(`ptr`: Long,`waitForBackupsToUpload`: Byte,`passphrase`: RustBuffer.ByValue,`progressListener`: Long,
 ): Long
+external fun uniffi_matrix_sdk_ffi_fn_method_encryption_export_room_keys(`ptr`: Long,`path`: RustBuffer.ByValue,`passphrase`: RustBuffer.ByValue,
+): Long
 external fun uniffi_matrix_sdk_ffi_fn_method_encryption_has_devices_to_verify_against(`ptr`: Long,
+): Long
+external fun uniffi_matrix_sdk_ffi_fn_method_encryption_import_room_keys(`ptr`: Long,`path`: RustBuffer.ByValue,`passphrase`: RustBuffer.ByValue,
 ): Long
 external fun uniffi_matrix_sdk_ffi_fn_method_encryption_import_secrets_bundle(`ptr`: Long,`secretsBundle`: Long,
 ): Long
@@ -9675,6 +9683,13 @@ public interface EncryptionInterface {
     suspend fun `enableRecovery`(`waitForBackupsToUpload`: kotlin.Boolean, `passphrase`: kotlin.String?, `progressListener`: EnableRecoveryProgressListener): kotlin.String
     
     /**
+     * Export every locally held room session to a password-protected Matrix text file.
+     * `path` must name an app-owned staging file; `passphrase` is used byte-for-byte.
+     * Native applications own the destination picker and must remove staging files after use.
+     */
+    suspend fun `exportRoomKeys`(`path`: kotlin.String, `passphrase`: kotlin.String)
+    
+    /**
      * Does the user have other devices that the current device can verify
      * against?
      *
@@ -9682,6 +9697,13 @@ public interface EncryptionInterface {
      * identity, and must not be a dehydrated device.
      */
     suspend fun `hasDevicesToVerifyAgainst`(): kotlin.Boolean
+    
+    /**
+     * Import a bounded app-owned copy of a Matrix key file into this client's crypto store.
+     * `path` is a native filesystem path; `passphrase` must match the export password exactly.
+     * Returns imported/total counts without exposing session keys or private file paths.
+     */
+    suspend fun `importRoomKeys`(`path`: kotlin.String, `passphrase`: kotlin.String): RoomKeyImportCounts
     
     /**
      * This method will import all the private cross-signing keys and
@@ -10039,6 +10061,33 @@ open class Encryption: Disposable, AutoCloseable, EncryptionInterface
 
     
     /**
+     * Export every locally held room session to a password-protected Matrix text file.
+     * `path` must name an app-owned staging file; `passphrase` is used byte-for-byte.
+     * Native applications own the destination picker and must remove staging files after use.
+     */
+    @Throws(ClientException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `exportRoomKeys`(`path`: kotlin.String, `passphrase`: kotlin.String) {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_matrix_sdk_ffi_fn_method_encryption_export_room_keys(
+                uniffiHandle,
+                FfiConverterString.lower(`path`),FfiConverterString.lower(`passphrase`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_poll_void(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_complete_void(future, continuation) },
+        { future -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_free_void(future) },
+        // lift function
+        { Unit },
+        
+        // Error FFI converter
+        ClientException.ErrorHandler,
+    )
+    }
+
+    
+    /**
      * Does the user have other devices that the current device can verify
      * against?
      *
@@ -10060,6 +10109,32 @@ open class Encryption: Disposable, AutoCloseable, EncryptionInterface
         { future -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_free_i8(future) },
         // lift function
         { FfiConverterBoolean.lift(it) },
+        // Error FFI converter
+        ClientException.ErrorHandler,
+    )
+    }
+
+    
+    /**
+     * Import a bounded app-owned copy of a Matrix key file into this client's crypto store.
+     * `path` is a native filesystem path; `passphrase` must match the export password exactly.
+     * Returns imported/total counts without exposing session keys or private file paths.
+     */
+    @Throws(ClientException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `importRoomKeys`(`path`: kotlin.String, `passphrase`: kotlin.String) : RoomKeyImportCounts {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_matrix_sdk_ffi_fn_method_encryption_import_room_keys(
+                uniffiHandle,
+                FfiConverterString.lower(`path`),FfiConverterString.lower(`passphrase`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeRoomKeyImportCounts.lift(it) },
         // Error FFI converter
         ClientException.ErrorHandler,
     )
@@ -36040,6 +36115,47 @@ public object FfiConverterTypeRoomInfo: FfiConverterRustBuffer<RoomInfo> {
             FfiConverterOptionalTypeRoomPowerLevels.write(value.`powerLevels`, buf)
             FfiConverterOptionalString.write(value.`roomVersion`, buf)
             FfiConverterBoolean.write(value.`privilegedCreatorsRole`, buf)
+    }
+}
+
+
+
+/**
+ * Counts from importing a standard Matrix key file; existing sessions can yield zero new imports.
+ */
+data class RoomKeyImportCounts (
+    var `importedCount`: kotlin.ULong
+    , 
+    var `totalCount`: kotlin.ULong
+    
+){
+    
+
+    
+
+    
+    companion object
+}
+
+/**
+ * @suppress
+ */
+public object FfiConverterTypeRoomKeyImportCounts: FfiConverterRustBuffer<RoomKeyImportCounts> {
+    override fun read(buf: ByteBuffer): RoomKeyImportCounts {
+        return RoomKeyImportCounts(
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RoomKeyImportCounts) = (
+            FfiConverterULong.allocationSize(value.`importedCount`) +
+            FfiConverterULong.allocationSize(value.`totalCount`)
+    )
+
+    override fun write(value: RoomKeyImportCounts, buf: ByteBuffer) {
+            FfiConverterULong.write(value.`importedCount`, buf)
+            FfiConverterULong.write(value.`totalCount`, buf)
     }
 }
 

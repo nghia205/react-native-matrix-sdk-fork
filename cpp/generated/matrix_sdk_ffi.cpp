@@ -1399,8 +1399,18 @@ extern "C" {
         RustBuffer passphrase, 
         uint64_t progress_listener
     );
+    /*handle*/ uint64_t uniffi_matrix_sdk_ffi_fn_method_encryption_export_room_keys(
+        /*handle*/ uint64_t ptr, 
+        RustBuffer path, 
+        RustBuffer passphrase
+    );
     /*handle*/ uint64_t uniffi_matrix_sdk_ffi_fn_method_encryption_has_devices_to_verify_against(
         /*handle*/ uint64_t ptr
+    );
+    /*handle*/ uint64_t uniffi_matrix_sdk_ffi_fn_method_encryption_import_room_keys(
+        /*handle*/ uint64_t ptr, 
+        RustBuffer path, 
+        RustBuffer passphrase
     );
     /*handle*/ uint64_t uniffi_matrix_sdk_ffi_fn_method_encryption_import_secrets_bundle(
         /*handle*/ uint64_t ptr, 
@@ -4058,7 +4068,11 @@ extern "C" {
     );
     uint16_t uniffi_matrix_sdk_ffi_checksum_method_encryption_enable_recovery(
     );
+    uint16_t uniffi_matrix_sdk_ffi_checksum_method_encryption_export_room_keys(
+    );
     uint16_t uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against(
+    );
+    uint16_t uniffi_matrix_sdk_ffi_checksum_method_encryption_import_room_keys(
     );
     uint16_t uniffi_matrix_sdk_ffi_checksum_method_encryption_import_secrets_bundle(
     );
@@ -27961,12 +27975,28 @@ NativeMatrixSdkFfi::NativeMatrixSdkFfi(
             return this->cpp_uniffi_matrix_sdk_ffi_fn_method_encryption_enable_recovery(rt, thisVal, args, count);
         }
     );
+    props["ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_export_room_keys"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_export_room_keys"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_uniffi_matrix_sdk_ffi_fn_method_encryption_export_room_keys(rt, thisVal, args, count);
+        }
+    );
     props["ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_has_devices_to_verify_against"] = jsi::Function::createFromHostFunction(
         rt,
         jsi::PropNameID::forAscii(rt, "ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_has_devices_to_verify_against"),
         1,
         [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
             return this->cpp_uniffi_matrix_sdk_ffi_fn_method_encryption_has_devices_to_verify_against(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_import_room_keys"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_import_room_keys"),
+        3,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_uniffi_matrix_sdk_ffi_fn_method_encryption_import_room_keys(rt, thisVal, args, count);
         }
     );
     props["ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_import_secrets_bundle"] = jsi::Function::createFromHostFunction(
@@ -33961,12 +33991,28 @@ NativeMatrixSdkFfi::NativeMatrixSdkFfi(
             return this->cpp_uniffi_matrix_sdk_ffi_checksum_method_encryption_enable_recovery(rt, thisVal, args, count);
         }
     );
+    props["ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_export_room_keys"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_export_room_keys"),
+        0,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_uniffi_matrix_sdk_ffi_checksum_method_encryption_export_room_keys(rt, thisVal, args, count);
+        }
+    );
     props["ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against"] = jsi::Function::createFromHostFunction(
         rt,
         jsi::PropNameID::forAscii(rt, "ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against"),
         0,
         [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
             return this->cpp_uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against(rt, thisVal, args, count);
+        }
+    );
+    props["ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_import_room_keys"] = jsi::Function::createFromHostFunction(
+        rt,
+        jsi::PropNameID::forAscii(rt, "ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_import_room_keys"),
+        0,
+        [this](jsi::Runtime &rt, const jsi::Value &thisVal, const jsi::Value *args, size_t count) -> jsi::Value {
+            return this->cpp_uniffi_matrix_sdk_ffi_checksum_method_encryption_import_room_keys(rt, thisVal, args, count);
         }
     );
     props["ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_import_secrets_bundle"] = jsi::Function::createFromHostFunction(
@@ -39756,8 +39802,22 @@ jsi::Value NativeMatrixSdkFfi::cpp_uniffi_matrix_sdk_ffi_fn_method_encryption_en
         
         return uniffi_jsi::Bridging</*handle*/ uint64_t>::toJs(rt, callInvoker, value);
 }
+jsi::Value NativeMatrixSdkFfi::cpp_uniffi_matrix_sdk_ffi_fn_method_encryption_export_room_keys(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        auto value = uniffi_matrix_sdk_ffi_fn_method_encryption_export_room_keys(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::matrix_sdk_ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[1]), uniffi::matrix_sdk_ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[2])
+        );
+
+        
+        return uniffi_jsi::Bridging</*handle*/ uint64_t>::toJs(rt, callInvoker, value);
+}
 jsi::Value NativeMatrixSdkFfi::cpp_uniffi_matrix_sdk_ffi_fn_method_encryption_has_devices_to_verify_against(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
         auto value = uniffi_matrix_sdk_ffi_fn_method_encryption_has_devices_to_verify_against(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0])
+        );
+
+        
+        return uniffi_jsi::Bridging</*handle*/ uint64_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeMatrixSdkFfi::cpp_uniffi_matrix_sdk_ffi_fn_method_encryption_import_room_keys(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        auto value = uniffi_matrix_sdk_ffi_fn_method_encryption_import_room_keys(uniffi_jsi::Bridging</*handle*/ uint64_t>::fromJs(rt, callInvoker, args[0]), uniffi::matrix_sdk_ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[1]), uniffi::matrix_sdk_ffi::Bridging<RustBuffer>::fromJs(rt, callInvoker, args[2])
         );
 
         
@@ -46340,8 +46400,22 @@ jsi::Value NativeMatrixSdkFfi::cpp_uniffi_matrix_sdk_ffi_checksum_method_encrypt
         
         return uniffi_jsi::Bridging<uint16_t>::toJs(rt, callInvoker, value);
 }
+jsi::Value NativeMatrixSdkFfi::cpp_uniffi_matrix_sdk_ffi_checksum_method_encryption_export_room_keys(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        auto value = uniffi_matrix_sdk_ffi_checksum_method_encryption_export_room_keys(
+        );
+
+        
+        return uniffi_jsi::Bridging<uint16_t>::toJs(rt, callInvoker, value);
+}
 jsi::Value NativeMatrixSdkFfi::cpp_uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
         auto value = uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against(
+        );
+
+        
+        return uniffi_jsi::Bridging<uint16_t>::toJs(rt, callInvoker, value);
+}
+jsi::Value NativeMatrixSdkFfi::cpp_uniffi_matrix_sdk_ffi_checksum_method_encryption_import_room_keys(jsi::Runtime& rt, const jsi::Value& thisVal, const jsi::Value* args, size_t count) {
+        auto value = uniffi_matrix_sdk_ffi_checksum_method_encryption_import_room_keys(
         );
 
         
