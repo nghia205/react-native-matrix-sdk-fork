@@ -750,6 +750,9 @@ interface NativeModuleInterface {
   ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_curve25519_key(
     ptr: bigint
   ): bigint;
+  ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_detect_secrets_bundle(
+    ptr: bigint
+  ): bigint;
   ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_disable_recovery(
     ptr: bigint
   ): bigint;
@@ -770,8 +773,18 @@ interface NativeModuleInterface {
     path: Uint8Array,
     passphrase: Uint8Array
   ): bigint;
+  ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_export_secrets_bundle(
+    ptr: bigint,
+    path: Uint8Array,
+    passphrase: Uint8Array
+  ): bigint;
   ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_has_devices_to_verify_against(
     ptr: bigint
+  ): bigint;
+  ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_import_encrypted_secrets_bundle(
+    ptr: bigint,
+    path: Uint8Array,
+    passphrase: Uint8Array
   ): bigint;
   ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_import_room_keys(
     ptr: bigint,
@@ -3146,12 +3159,15 @@ interface NativeModuleInterface {
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_backup_state(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_backup_state_listener(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_curve25519_key(): number;
+  ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_detect_secrets_bundle(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_disable_recovery(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_ed25519_key(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_enable_backups(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_enable_recovery(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_export_room_keys(): number;
+  ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_export_secrets_bundle(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against(): number;
+  ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_import_encrypted_secrets_bundle(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_import_room_keys(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_import_secrets_bundle(): number;
   ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_is_last_device(): number;

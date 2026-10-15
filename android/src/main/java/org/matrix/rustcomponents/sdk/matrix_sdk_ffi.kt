@@ -2158,6 +2158,8 @@ external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_backup_state_liste
 ): Short
 external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_curve25519_key(
 ): Short
+external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_detect_secrets_bundle(
+): Short
 external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_disable_recovery(
 ): Short
 external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_ed25519_key(
@@ -2168,7 +2170,11 @@ external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_enable_recovery(
 ): Short
 external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_export_room_keys(
 ): Short
+external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_export_secrets_bundle(
+): Short
 external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against(
+): Short
+external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_import_encrypted_secrets_bundle(
 ): Short
 external fun uniffi_matrix_sdk_ffi_checksum_method_encryption_import_room_keys(
 ): Short
@@ -3388,6 +3394,8 @@ external fun uniffi_matrix_sdk_ffi_fn_method_encryption_backup_state_listener(`p
 ): Long
 external fun uniffi_matrix_sdk_ffi_fn_method_encryption_curve25519_key(`ptr`: Long,
 ): Long
+external fun uniffi_matrix_sdk_ffi_fn_method_encryption_detect_secrets_bundle(`ptr`: Long,
+): Long
 external fun uniffi_matrix_sdk_ffi_fn_method_encryption_disable_recovery(`ptr`: Long,
 ): Long
 external fun uniffi_matrix_sdk_ffi_fn_method_encryption_ed25519_key(`ptr`: Long,
@@ -3398,7 +3406,11 @@ external fun uniffi_matrix_sdk_ffi_fn_method_encryption_enable_recovery(`ptr`: L
 ): Long
 external fun uniffi_matrix_sdk_ffi_fn_method_encryption_export_room_keys(`ptr`: Long,`path`: RustBuffer.ByValue,`passphrase`: RustBuffer.ByValue,
 ): Long
+external fun uniffi_matrix_sdk_ffi_fn_method_encryption_export_secrets_bundle(`ptr`: Long,`path`: RustBuffer.ByValue,`passphrase`: RustBuffer.ByValue,
+): Long
 external fun uniffi_matrix_sdk_ffi_fn_method_encryption_has_devices_to_verify_against(`ptr`: Long,
+): Long
+external fun uniffi_matrix_sdk_ffi_fn_method_encryption_import_encrypted_secrets_bundle(`ptr`: Long,`path`: RustBuffer.ByValue,`passphrase`: RustBuffer.ByValue,
 ): Long
 external fun uniffi_matrix_sdk_ffi_fn_method_encryption_import_room_keys(`ptr`: Long,`path`: RustBuffer.ByValue,`passphrase`: RustBuffer.ByValue,
 ): Long
@@ -9670,6 +9682,11 @@ public interface EncryptionInterface {
      */
     suspend fun `curve25519Key`(): kotlin.String?
     
+    /**
+     * Inspect the active store and current server backup; no private material crosses UniFFI.
+     */
+    suspend fun `detectSecretsBundle`(): DetectedSecretsBundle
+
     suspend fun `disableRecovery`()
     
     /**
@@ -9690,6 +9707,12 @@ public interface EncryptionInterface {
     suspend fun `exportRoomKeys`(`path`: kotlin.String, `passphrase`: kotlin.String)
     
     /**
+     * Export an account-bound bundle directly to encrypted app-owned staging storage.
+     * Plaintext remains native and is zeroized even when serialization/encryption fails.
+     */
+    suspend fun `exportSecretsBundle`(`path`: kotlin.String, `passphrase`: kotlin.String): DetectedSecretsBundle
+
+    /**
      * Does the user have other devices that the current device can verify
      * against?
      *
@@ -9698,6 +9721,12 @@ public interface EncryptionInterface {
      */
     suspend fun `hasDevicesToVerifyAgainst`(): kotlin.Boolean
     
+    /**
+     * Decrypt/validate inside Rust before constructing the SDK's user-bound handle and importing.
+     * A single bounded file descriptor prevents path replacement from changing the selected input.
+     */
+    suspend fun `importEncryptedSecretsBundle`(`path`: kotlin.String, `passphrase`: kotlin.String): DetectedSecretsBundle
+
     /**
      * Import a bounded app-owned copy of a Matrix key file into this client's crypto store.
      * `path` is a native filesystem path; `passphrase` must match the export password exactly.
@@ -9971,6 +10000,30 @@ open class Encryption: Disposable, AutoCloseable, EncryptionInterface
     }
 
     
+    /**
+     * Inspect the active store and current server backup; no private material crosses UniFFI.
+     */
+    @Throws(ClientException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `detectSecretsBundle`() : DetectedSecretsBundle {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_matrix_sdk_ffi_fn_method_encryption_detect_secrets_bundle(
+                uniffiHandle,
+
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeDetectedSecretsBundle.lift(it) },
+        // Error FFI converter
+        ClientException.ErrorHandler,
+    )
+    }
+
+
     @Throws(RecoveryException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
     override suspend fun `disableRecovery`() {
@@ -10088,6 +10141,31 @@ open class Encryption: Disposable, AutoCloseable, EncryptionInterface
 
     
     /**
+     * Export an account-bound bundle directly to encrypted app-owned staging storage.
+     * Plaintext remains native and is zeroized even when serialization/encryption fails.
+     */
+    @Throws(ClientException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `exportSecretsBundle`(`path`: kotlin.String, `passphrase`: kotlin.String) : DetectedSecretsBundle {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_matrix_sdk_ffi_fn_method_encryption_export_secrets_bundle(
+                uniffiHandle,
+                FfiConverterString.lower(`path`),FfiConverterString.lower(`passphrase`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeDetectedSecretsBundle.lift(it) },
+        // Error FFI converter
+        ClientException.ErrorHandler,
+    )
+    }
+
+
+    /**
      * Does the user have other devices that the current device can verify
      * against?
      *
@@ -10115,6 +10193,31 @@ open class Encryption: Disposable, AutoCloseable, EncryptionInterface
     }
 
     
+    /**
+     * Decrypt/validate inside Rust before constructing the SDK's user-bound handle and importing.
+     * A single bounded file descriptor prevents path replacement from changing the selected input.
+     */
+    @Throws(ClientException::class)
+    @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
+    override suspend fun `importEncryptedSecretsBundle`(`path`: kotlin.String, `passphrase`: kotlin.String) : DetectedSecretsBundle {
+        return uniffiRustCallAsync(
+        callWithHandle { uniffiHandle ->
+            UniffiLib.uniffi_matrix_sdk_ffi_fn_method_encryption_import_encrypted_secrets_bundle(
+                uniffiHandle,
+                FfiConverterString.lower(`path`),FfiConverterString.lower(`passphrase`),
+            )
+        },
+        { future, callback, continuation -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer(future, callback, continuation) },
+        { future, continuation -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer(future, continuation) },
+        { future -> UniffiLib.ffi_matrix_sdk_ffi_rust_future_free_rust_buffer(future) },
+        // lift function
+        { FfiConverterTypeDetectedSecretsBundle.lift(it) },
+        // Error FFI converter
+        ClientException.ErrorHandler,
+    )
+    }
+
+
     /**
      * Import a bounded app-owned copy of a Matrix key file into this client's crypto store.
      * `path` is a native filesystem path; `passphrase` must match the export password exactly.

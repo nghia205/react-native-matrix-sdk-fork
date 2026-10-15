@@ -50833,6 +50833,12 @@ export interface EncryptionLike {
   curve25519Key(asyncOpts_?: {
     signal: AbortSignal;
   }): Promise<string | undefined>;
+  /**
+   * Inspect the active store and current server backup; no private material crosses UniFFI.
+   */
+  detectSecretsBundle(asyncOpts_?: {
+    signal: AbortSignal;
+  }) /*throws*/ : Promise<DetectedSecretsBundle>;
   disableRecovery(asyncOpts_?: {
     signal: AbortSignal;
   }) /*throws*/ : Promise<void>;
@@ -50861,6 +50867,15 @@ export interface EncryptionLike {
     asyncOpts_?: { signal: AbortSignal }
   ) /*throws*/ : Promise<void>;
   /**
+   * Export an account-bound bundle directly to encrypted app-owned staging storage.
+   * Plaintext remains native and is zeroized even when serialization/encryption fails.
+   */
+  exportSecretsBundle(
+    path: string,
+    passphrase: string,
+    asyncOpts_?: { signal: AbortSignal }
+  ) /*throws*/ : Promise<DetectedSecretsBundle>;
+  /**
    * Does the user have other devices that the current device can verify
    * against?
    *
@@ -50870,6 +50885,15 @@ export interface EncryptionLike {
   hasDevicesToVerifyAgainst(asyncOpts_?: {
     signal: AbortSignal;
   }) /*throws*/ : Promise<boolean>;
+  /**
+   * Decrypt/validate inside Rust before constructing the SDK's user-bound handle and importing.
+   * A single bounded file descriptor prevents path replacement from changing the selected input.
+   */
+  importEncryptedSecretsBundle(
+    path: string,
+    passphrase: string,
+    asyncOpts_?: { signal: AbortSignal }
+  ) /*throws*/ : Promise<DetectedSecretsBundle>;
   /**
    * Import a bounded app-owned copy of a Matrix key file into this client's crypto store.
    * `path` is a native filesystem path; `passphrase` must match the export password exactly.
@@ -51110,6 +51134,46 @@ export class Encryption extends UniffiAbstractObject implements EncryptionLike {
     }
   }
 
+  /**
+   * Inspect the active store and current server backup; no private material crosses UniFFI.
+   */
+  async detectSecretsBundle(asyncOpts_?: {
+    signal: AbortSignal;
+  }): Promise<DetectedSecretsBundle> /*throws*/ {
+    const __stack = uniffiIsDebug ? new Error().stack : undefined;
+    try {
+      return await uniffiRustCallAsync(
+        /*rustCaller:*/ uniffiCaller,
+        /*rustFutureFunc:*/ () => {
+          return nativeModule().ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_detect_secrets_bundle(
+            uniffiTypeEncryptionObjectFactory.clonePointer(this)
+          );
+        },
+        /*pollFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer,
+        /*cancelFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_cancel_rust_buffer,
+        /*completeFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer,
+        /*freeFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_free_rust_buffer,
+        /*liftFunc:*/ FfiConverterTypeDetectedSecretsBundle.lift.bind(
+          FfiConverterTypeDetectedSecretsBundle
+        ),
+        /*liftString:*/ FfiConverterString.lift,
+        /*asyncOpts:*/ asyncOpts_,
+        /*errorHandler:*/ FfiConverterTypeClientError.lift.bind(
+          FfiConverterTypeClientError
+        )
+      );
+    } catch (__error: any) {
+      if (uniffiIsDebug && __error instanceof Error) {
+        __error.stack = __stack;
+      }
+      throw __error;
+    }
+  }
+
   async disableRecovery(asyncOpts_?: {
     signal: AbortSignal;
   }): Promise<void> /*throws*/ {
@@ -51306,6 +51370,51 @@ export class Encryption extends UniffiAbstractObject implements EncryptionLike {
   }
 
   /**
+   * Export an account-bound bundle directly to encrypted app-owned staging storage.
+   * Plaintext remains native and is zeroized even when serialization/encryption fails.
+   */
+  async exportSecretsBundle(
+    path: string,
+    passphrase: string,
+    asyncOpts_?: { signal: AbortSignal }
+  ): Promise<DetectedSecretsBundle> /*throws*/ {
+    const __stack = uniffiIsDebug ? new Error().stack : undefined;
+    try {
+      return await uniffiRustCallAsync(
+        /*rustCaller:*/ uniffiCaller,
+        /*rustFutureFunc:*/ () => {
+          return nativeModule().ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_export_secrets_bundle(
+            uniffiTypeEncryptionObjectFactory.clonePointer(this),
+            FfiConverterString.lower(path),
+            FfiConverterString.lower(passphrase)
+          );
+        },
+        /*pollFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer,
+        /*cancelFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_cancel_rust_buffer,
+        /*completeFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer,
+        /*freeFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_free_rust_buffer,
+        /*liftFunc:*/ FfiConverterTypeDetectedSecretsBundle.lift.bind(
+          FfiConverterTypeDetectedSecretsBundle
+        ),
+        /*liftString:*/ FfiConverterString.lift,
+        /*asyncOpts:*/ asyncOpts_,
+        /*errorHandler:*/ FfiConverterTypeClientError.lift.bind(
+          FfiConverterTypeClientError
+        )
+      );
+    } catch (__error: any) {
+      if (uniffiIsDebug && __error instanceof Error) {
+        __error.stack = __stack;
+      }
+      throw __error;
+    }
+  }
+
+  /**
    * Does the user have other devices that the current device can verify
    * against?
    *
@@ -51333,6 +51442,51 @@ export class Encryption extends UniffiAbstractObject implements EncryptionLike {
         /*freeFunc:*/ nativeModule()
           .ubrn_ffi_matrix_sdk_ffi_rust_future_free_i8,
         /*liftFunc:*/ FfiConverterBool.lift.bind(FfiConverterBool),
+        /*liftString:*/ FfiConverterString.lift,
+        /*asyncOpts:*/ asyncOpts_,
+        /*errorHandler:*/ FfiConverterTypeClientError.lift.bind(
+          FfiConverterTypeClientError
+        )
+      );
+    } catch (__error: any) {
+      if (uniffiIsDebug && __error instanceof Error) {
+        __error.stack = __stack;
+      }
+      throw __error;
+    }
+  }
+
+  /**
+   * Decrypt/validate inside Rust before constructing the SDK's user-bound handle and importing.
+   * A single bounded file descriptor prevents path replacement from changing the selected input.
+   */
+  async importEncryptedSecretsBundle(
+    path: string,
+    passphrase: string,
+    asyncOpts_?: { signal: AbortSignal }
+  ): Promise<DetectedSecretsBundle> /*throws*/ {
+    const __stack = uniffiIsDebug ? new Error().stack : undefined;
+    try {
+      return await uniffiRustCallAsync(
+        /*rustCaller:*/ uniffiCaller,
+        /*rustFutureFunc:*/ () => {
+          return nativeModule().ubrn_uniffi_matrix_sdk_ffi_fn_method_encryption_import_encrypted_secrets_bundle(
+            uniffiTypeEncryptionObjectFactory.clonePointer(this),
+            FfiConverterString.lower(path),
+            FfiConverterString.lower(passphrase)
+          );
+        },
+        /*pollFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_poll_rust_buffer,
+        /*cancelFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_cancel_rust_buffer,
+        /*completeFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_complete_rust_buffer,
+        /*freeFunc:*/ nativeModule()
+          .ubrn_ffi_matrix_sdk_ffi_rust_future_free_rust_buffer,
+        /*liftFunc:*/ FfiConverterTypeDetectedSecretsBundle.lift.bind(
+          FfiConverterTypeDetectedSecretsBundle
+        ),
         /*liftString:*/ FfiConverterString.lift,
         /*asyncOpts:*/ asyncOpts_,
         /*errorHandler:*/ FfiConverterTypeClientError.lift.bind(
@@ -72868,6 +73022,14 @@ function uniffiEnsureInitialized() {
     );
   }
   if (
+    nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_detect_secrets_bundle() !==
+    21870
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      'uniffi_matrix_sdk_ffi_checksum_method_encryption_detect_secrets_bundle'
+    );
+  }
+  if (
     nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_disable_recovery() !==
     43697
   ) {
@@ -72908,11 +73070,27 @@ function uniffiEnsureInitialized() {
     );
   }
   if (
+    nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_export_secrets_bundle() !==
+    56693
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      'uniffi_matrix_sdk_ffi_checksum_method_encryption_export_secrets_bundle'
+    );
+  }
+  if (
     nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against() !==
     50754
   ) {
     throw new UniffiInternalError.ApiChecksumMismatch(
       'uniffi_matrix_sdk_ffi_checksum_method_encryption_has_devices_to_verify_against'
+    );
+  }
+  if (
+    nativeModule().ubrn_uniffi_matrix_sdk_ffi_checksum_method_encryption_import_encrypted_secrets_bundle() !==
+    63475
+  ) {
+    throw new UniffiInternalError.ApiChecksumMismatch(
+      'uniffi_matrix_sdk_ffi_checksum_method_encryption_import_encrypted_secrets_bundle'
     );
   }
   if (

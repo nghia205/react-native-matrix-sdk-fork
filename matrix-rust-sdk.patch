@@ -814,8 +814,33 @@ index e45bacc1e..73533d6b7 100644
  /// Update cache keys in the cache store after uploading a media file /
  /// thumbnail.
  async fn update_media_cache_keys_after_upload(
+diff --git a/bindings/matrix-sdk-ffi/Cargo.toml b/bindings/matrix-sdk-ffi/Cargo.toml
+index 576defe..2ac7cf5 100644
+--- a/bindings/matrix-sdk-ffi/Cargo.toml
++++ b/bindings/matrix-sdk-ffi/Cargo.toml
+@@ -41,7 +41,12 @@ experimental-element-recent-emojis = ["matrix-sdk/experimental-element-recent-em
+ experimental-push-secrets = ["matrix-sdk/experimental-push-secrets"]
+ 
+ [dependencies]
++aes = { version = "0.8.4", default-features = false, features = ["zeroize"] }
++aes-gcm = { version = "0.10.3", default-features = false, features = ["aes", "alloc", "zeroize"] }
+ anyhow.workspace = true
++pbkdf2 = { workspace = true, features = ["hmac"] }
++rand = { workspace = true, features = ["thread_rng"] }
++sha2.workspace = true
+ chrono.workspace = true
+ extension-trait = "1.0.2"
+ eyeball-im.workspace = true
+@@ -122,6 +127,7 @@ uniffi = { workspace = true, features = ["tokio"] }
+ 
+ [target.'cfg(target_os = "android")'.dependencies]
+ paranoid-android = { version = "0.2.2", default-features = false }
++rustls = { version = "0.23.38", default-features = false, features = ["ring", "std", "tls12"] }
+ # Needed for `rustls-platform-verifier`. Newer versions aren't compatible with it.
+ jni = "0.21.1"
+ # Used to access the credential storage on Android
 diff --git a/bindings/matrix-sdk-ffi/src/encryption.rs b/bindings/matrix-sdk-ffi/src/encryption.rs
-index 06fa0fa..76782be 100644
+index 06fa0fa..41e0270 100644
 --- a/bindings/matrix-sdk-ffi/src/encryption.rs
 +++ b/bindings/matrix-sdk-ffi/src/encryption.rs
 @@ -12,7 +12,8 @@
@@ -903,10 +928,75 @@ index 06fa0fa..76782be 100644
  #[matrix_sdk_ffi_macros::export(callback_interface)]
  pub trait BackupStateListener: SyncOutsideWasm + SendOutsideWasm {
      fn on_update(&self, status: BackupState);
-@@ -459,6 +528,69 @@ pub async fn database_contains_secrets_bundle(
+@@ -459,6 +528,134 @@ pub async fn database_contains_secrets_bundle(
  
  #[matrix_sdk_ffi_macros::export]
  impl Encryption {
++    /// Inspect the active store and current server backup; no private material crosses UniFFI.
++    pub async fn detect_secrets_bundle(&self) -> Result<DetectedSecretsBundle, ClientError> {
++        self.inner.wait_for_e2ee_initialization_tasks().await;
++        let bundle = match self.inner.export_secrets_bundle().await {
++            Ok(bundle) => bundle,
++            Err(matrix_sdk_base::crypto::store::SecretsBundleExportError::MissingCrossSigningKey(_)
++                | matrix_sdk_base::crypto::store::SecretsBundleExportError::MissingCrossSigningKeys) => return Ok(DetectedSecretsBundle::None),
++            Err(matrix_sdk_base::crypto::store::SecretsBundleExportError::MissingBackupVersion) => return Ok(DetectedSecretsBundle::UnusedBackup),
++            Err(_) => return Err(bundle_transfer_error("UNAVAILABLE")),
++        };
++        let info = self.secrets_bundle_backup_info().await?;
++        Ok(detect_bundle_version(&bundle, info.as_ref()))
++    }
++
++    /// Export an account-bound bundle directly to encrypted app-owned staging storage.
++    /// Plaintext remains native and is zeroized even when serialization/encryption fails.
++    pub async fn export_secrets_bundle(&self, path: String, passphrase: String) -> Result<DetectedSecretsBundle, ClientError> {
++        let passphrase = zeroize::Zeroizing::new(passphrase);
++        validate_room_key_transfer(&path, &passphrase)?;
++        self.inner.wait_for_e2ee_initialization_tasks().await;
++        let bundle = self.inner.export_secrets_bundle().await.map_err(|_| bundle_transfer_error("UNAVAILABLE"))?;
++        bundle_validation::validate_identity(&self._client.inner, &bundle).await.map_err(|_| bundle_transfer_error("INVALID"))?;
++        let info = self.secrets_bundle_backup_info().await?;
++        let detected = detect_bundle_version(&bundle, info.as_ref());
++        if !matches!(detected, DetectedSecretsBundle::Complete) { return Err(bundle_transfer_error("BACKUP")); }
++        let user_id = self._client.inner.user_id().ok_or_else(|| bundle_transfer_error("SESSION"))?.to_owned();
++        let owned = TransferSecretsBundle { user_id, bundle };
++        let plaintext = zeroize::Zeroizing::new(serde_json::to_vec(&owned).map_err(|_| bundle_transfer_error("EXPORT"))?);
++        let ciphertext = tokio::task::spawn_blocking(move || bundle_envelope::encrypt(&plaintext, &passphrase))
++            .await.map_err(|_| bundle_transfer_error("EXPORT"))?.map_err(|_| bundle_transfer_error("EXPORT"))?;
++        let mut options = std::fs::OpenOptions::new(); options.write(true).create_new(true);
++        #[cfg(unix)] { use std::os::unix::fs::OpenOptionsExt; options.mode(0o600); }
++        use std::io::Write;
++        let mut file = options.open(&path).map_err(|_| bundle_transfer_error("FILE"))?;
++        file.write_all(&ciphertext).and_then(|_| file.sync_all()).map_err(|_| bundle_transfer_error("FILE"))?;
++        Ok(detected)
++    }
++
++    /// Decrypt/validate inside Rust before constructing the SDK's user-bound handle and importing.
++    /// A single bounded file descriptor prevents path replacement from changing the selected input.
++    pub async fn import_encrypted_secrets_bundle(&self, path: String, passphrase: String) -> Result<DetectedSecretsBundle, ClientError> {
++        let passphrase = zeroize::Zeroizing::new(passphrase);
++        validate_room_key_transfer(&path, &passphrase)?;
++        self.inner.wait_for_e2ee_initialization_tasks().await;
++        let file = std::fs::File::open(&path).map_err(|_| bundle_transfer_error("FILE"))?;
++        if !file.metadata().map_err(|_| bundle_transfer_error("FILE"))?.is_file() { return Err(bundle_transfer_error("FILE")); }
++        let mut bytes = Vec::new();
++        file.take(bundle_envelope::MAX_FILE_BYTES as u64 + 1).read_to_end(&mut bytes).map_err(|_| bundle_transfer_error("FILE"))?;
++        if bytes.len() > bundle_envelope::MAX_FILE_BYTES { return Err(bundle_transfer_error("SIZE")); }
++        let plaintext = tokio::task::spawn_blocking(move || bundle_envelope::decrypt(&bytes, &passphrase))
++            .await.map_err(|_| bundle_transfer_error("IMPORT"))?.map_err(|_| bundle_transfer_error("IMPORT"))?;
++        let owned: TransferSecretsBundle = serde_json::from_slice(&plaintext).map_err(|_| bundle_transfer_error("INVALID"))?;
++        if self._client.inner.user_id() != Some(&owned.user_id) { return Err(bundle_transfer_error("ACCOUNT")); }
++        bundle_validation::validate_identity(&self._client.inner, &owned.bundle).await.map_err(|_| bundle_transfer_error("INVALID"))?;
++        let info = self.secrets_bundle_backup_info().await?;
++        let detected = detect_bundle_version(&owned.bundle, info.as_ref());
++        if !matches!(detected, DetectedSecretsBundle::Complete) { return Err(bundle_transfer_error("BACKUP")); }
++        let json = zeroize::Zeroizing::new(serde_json::to_string(&owned.bundle).map_err(|_| bundle_transfer_error("INVALID"))?);
++        let info_json = serde_json::to_string(&info.as_ref().ok_or_else(|| bundle_transfer_error("BACKUP"))?.1).map_err(|_| bundle_transfer_error("BACKUP"))?;
++        let detected = json_string_contains_secrets_bundle(&json, Some(info_json.clone())).map_err(|_| bundle_transfer_error("INVALID"))?;
++        let bundle = SecretsBundleWithUserId::from_str(owned.user_id.as_str(), &json, &info_json).map_err(|_| bundle_transfer_error("INVALID"))?;
++        self.import_secrets_bundle(&bundle).await.map_err(|_| bundle_transfer_error("IMPORT"))?;
++        Ok(detected)
++    }
++
 +    /// Export every locally held room session to a password-protected Matrix text file.
 +    /// `path` must name an app-owned staging file; `passphrase` is used byte-for-byte.
 +    /// Native applications own the destination picker and must remove staging files after use.
@@ -973,3 +1063,360 @@ index 06fa0fa..76782be 100644
      /// Get the public ed25519 key of our own device. This is usually what is
      /// called the fingerprint of the device.
      pub async fn ed25519_key(&self) -> Option<String> {
+@@ -890,3 +1087,336 @@ impl From<&matrix_sdk::encryption::OAuthCrossSigningResetInfo> for OidcCrossSign
+         Self { approval_url: value.approval_url.to_string() }
+     }
+ }
++
++use matrix_sdk_base::crypto as bundle_crypto;
++
++mod bundle_envelope {
++    //! Password-protected, authenticated secrets-bundle envelope owned by the Mobile native host.
++    //! Input/output are bounded bytes; only ciphertext may be persisted. The versioned magic is AAD,
++    //! followed by a 32-byte salt, 12-byte nonce and AES-256-GCM ciphertext/tag. PBKDF2 cost is fixed
++    //! so imported files cannot request unbounded work.
++    use aes_gcm::{
++        aead::{Aead, Payload},
++        Aes256Gcm, KeyInit, Nonce,
++    };
++    use rand::Rng;
++    use zeroize::Zeroizing;
++
++    pub const MAX_FILE_BYTES: usize = 1024 * 1024;
++    const MAGIC: &[u8] = b"MATRIX_SECRETS_BUNDLE\x01";
++    const ROUNDS: u32 = 600_000;
++    const OVERHEAD: usize = MAGIC.len() + 32 + 12 + 16;
++
++    /// Deliberately carries no underlying crypto error, payload, password or private path.
++    #[derive(Debug)]
++    pub struct InvalidBundle;
++
++    /// Encrypt exact passphrase bytes with fresh salt/nonce; callers must never persist `plaintext`.
++    pub fn encrypt(plaintext: &[u8], passphrase: &str) -> Result<Vec<u8>, InvalidBundle> {
++        if plaintext.len() > MAX_FILE_BYTES - OVERHEAD
++            || passphrase.len() < 12
++            || passphrase.len() > 1024
++            || passphrase.trim().is_empty()
++        {
++            return Err(InvalidBundle);
++        }
++        let mut salt = [0u8; 32];
++        let mut nonce = [0u8; 12];
++        let mut rng = rand::rng();
++        rng.fill_bytes(&mut salt);
++        rng.fill_bytes(&mut nonce);
++        let key = derive_key(passphrase, &salt);
++        let cipher = Aes256Gcm::new_from_slice(key.as_ref()).map_err(|_| InvalidBundle)?;
++        let ciphertext = cipher
++            .encrypt(
++                Nonce::from_slice(&nonce),
++                Payload {
++                    msg: plaintext,
++                    aad: MAGIC,
++                },
++            )
++            .map_err(|_| InvalidBundle)?;
++        let mut output = Vec::with_capacity(OVERHEAD + plaintext.len());
++        output.extend_from_slice(MAGIC);
++        output.extend_from_slice(&salt);
++        output.extend_from_slice(&nonce);
++        output.extend(ciphertext);
++        Ok(output)
++    }
++
++    /// Authenticate before returning any plaintext; bounded header parsing precedes expensive KDF work.
++    pub fn decrypt(
++        ciphertext: &[u8],
++        passphrase: &str,
++    ) -> Result<Zeroizing<Vec<u8>>, InvalidBundle> {
++        if ciphertext.len() < OVERHEAD
++            || ciphertext.len() > MAX_FILE_BYTES
++            || !ciphertext.starts_with(MAGIC)
++            || passphrase.trim().is_empty()
++            || passphrase.len() > 1024
++        {
++            return Err(InvalidBundle);
++        }
++        let salt_end = MAGIC.len() + 32;
++        let nonce_end = salt_end + 12;
++        let key = derive_key(passphrase, &ciphertext[MAGIC.len()..salt_end]);
++        let cipher = Aes256Gcm::new_from_slice(key.as_ref()).map_err(|_| InvalidBundle)?;
++        cipher
++            .decrypt(
++                Nonce::from_slice(&ciphertext[salt_end..nonce_end]),
++                Payload {
++                    msg: &ciphertext[nonce_end..],
++                    aad: MAGIC,
++                },
++            )
++            .map(Zeroizing::new)
++            .map_err(|_| InvalidBundle)
++    }
++
++    /// Keep derived key bytes in zeroizing storage for every success/failure path.
++    fn derive_key(passphrase: &str, salt: &[u8]) -> Zeroizing<[u8; 32]> {
++        let mut key = Zeroizing::new([0u8; 32]);
++        pbkdf2::pbkdf2_hmac::<sha2::Sha256>(passphrase.as_bytes(), salt, ROUNDS, key.as_mut());
++        key
++    }
++
++    #[cfg(test)]
++    mod tests {
++        use super::*;
++        #[test]
++        fn authenticated_round_trip_and_tampering() {
++            let secret = b"private bundle fixture";
++            let password = " exact password ";
++            let first = encrypt(secret, password).unwrap();
++            let second = encrypt(secret, password).unwrap();
++            assert_ne!(first, second);
++            assert!(!first.windows(secret.len()).any(|window| window == secret));
++            assert_eq!(&*decrypt(&first, password).unwrap(), secret);
++            assert!(decrypt(&first, "wrong password").is_err());
++            for index in [0, MAGIC.len(), MAGIC.len() + 32, first.len() - 1] {
++                let mut altered = first.clone();
++                altered[index] ^= 1;
++                assert!(decrypt(&altered, password).is_err());
++            }
++        }
++        #[test]
++        fn rejects_unbounded_and_invalid_inputs_before_derivation() {
++            assert!(decrypt(&vec![0; MAX_FILE_BYTES + 1], "password").is_err());
++            assert!(decrypt(b"{}", "password").is_err());
++            assert!(encrypt(b"{}", "short").is_err());
++            assert!(encrypt(&vec![0; MAX_FILE_BYTES], "valid password").is_err());
++        }
++    }
++}
++
++mod bundle_validation {
++    //! Mobile native bundle validation.
++    //! Network failures never imply an absent backup. Import/export require the current account's
++    //! three server-published signing keys and both the backup key and version to match before mutation.
++    use super::bundle_crypto;
++    use bundle_crypto::types::{BackupSecrets, RoomKeyBackupInfo, SecretsBundle};
++    use matrix_sdk::{
++        ruma::{
++            api::{
++                client::{backup::get_latest_backup_info, keys::get_keys},
++                error::ErrorKind,
++            },
++            OwnedUserId,
++        },
++        Client,
++    };
++    use serde::{Deserialize, Serialize};
++
++    /// Authenticated native payload. Private key fields are zeroized by the SDK on drop.
++    #[derive(Serialize, Deserialize)]
++    pub struct OwnedBundle {
++        pub user_id: OwnedUserId,
++        pub bundle: SecretsBundle,
++    }
++    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
++    pub enum BundleState {
++        WithoutBackup,
++        UnusedBackup,
++        Complete,
++    }
++
++    /// Distinguish absent backup (404) from untrustworthy metadata or failed server requests.
++    pub async fn backup_info(client: &Client) -> Result<Option<(String, RoomKeyBackupInfo)>, ()> {
++        match client
++            .send(get_latest_backup_info::v3::Request::new())
++            .await
++        {
++            Ok(response) => Ok(Some((
++                response.version,
++                response.algorithm.deserialize_as().map_err(|_| ())?,
++            ))),
++            Err(error) if error.client_api_error_kind() == Some(&ErrorKind::NotFound) => Ok(None),
++            Err(_) => Err(()),
++        }
++    }
++
++    /// Compare both the advertised version and derived public key; obsolete backup keys are not complete.
++    pub fn detect(
++        bundle: &SecretsBundle,
++        info: Option<&(String, RoomKeyBackupInfo)>,
++    ) -> BundleState {
++        match (&bundle.backup, info) {
++            (None, _) => BundleState::WithoutBackup,
++            (Some(BackupSecrets::MegolmBackupV1Curve25519AesSha2(secret)), Some((version, info)))
++                if &secret.backup_version == version && secret.key.backup_key_matches(info) =>
++            {
++                BundleState::Complete
++            }
++            _ => BundleState::UnusedBackup,
++        }
++    }
++
++    /// Query authoritative public keys before the SDK's unchecked bundle import can replace local identity.
++    /// A same-account but obsolete signing identity must never overwrite keys from a later identity reset.
++    pub async fn validate_identity(client: &Client, bundle: &SecretsBundle) -> Result<(), ()> {
++        let user = client.user_id().ok_or(())?;
++        let mut request = get_keys::v3::Request::new();
++        request.device_keys.insert(user.to_owned(), Vec::new());
++        let response = client.send(request).await.map_err(|_| ())?;
++        let seeds = [
++            &bundle.cross_signing.master_key,
++            &bundle.cross_signing.self_signing_key,
++            &bundle.cross_signing.user_signing_key,
++        ];
++        let keys = [
++            &response.master_keys,
++            &response.self_signing_keys,
++            &response.user_signing_keys,
++        ];
++        for ((seed, keys), usage) in
++            seeds
++                .into_iter()
++                .zip(keys)
++                .zip(["master", "self_signing", "user_signing"])
++        {
++            let expected = keys.get(user).ok_or(())?.deserialize().map_err(|_| ())?;
++            if !matches_signing_key(seed, &expected, user, usage) {
++                return Err(());
++            }
++        }
++        Ok(())
++    }
++
++    /// Compare a seed's derived public key and owner without accepting a foreign or malformed identity.
++    fn matches_signing_key(
++        seed: &str,
++        expected: &matrix_sdk::ruma::encryption::CrossSigningKey,
++        user: &matrix_sdk::ruma::UserId,
++        usage: &str,
++    ) -> bool {
++        let Ok(secret) = bundle_crypto::vodozemac::Ed25519SecretKey::from_base64(seed) else {
++            return false;
++        };
++        let public = secret.public_key().to_base64();
++        expected.user_id == user
++            && expected.keys.len() == 1
++            && expected.usage.iter().any(|value| value.as_str() == usage)
++            && expected.keys.iter().next().is_some_and(|(id, value)| {
++                id.as_str() == format!("ed25519:{public}") && value == &public
++            })
++    }
++
++    #[cfg(test)]
++    mod tests {
++        use super::*;
++        use bundle_crypto::{
++            store::types::BackupDecryptionKey,
++            types::{CrossSigningSecrets, MegolmBackupV1Curve25519AesSha2Secrets},
++        };
++        #[test]
++        fn rejects_wrong_account_old_signing_keys_and_malformed_seeds() {
++            let seed = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
++            let public = bundle_crypto::vodozemac::Ed25519SecretKey::from_base64(seed)
++                .unwrap()
++                .public_key()
++                .to_base64();
++            let expected: matrix_sdk::ruma::encryption::CrossSigningKey = serde_json::from_value(serde_json::json!({
++                "user_id": "@owner:example.org", "usage": ["master"], "keys": { format!("ed25519:{public}"): public }
++            })).unwrap();
++            assert!(matches_signing_key(
++                seed,
++                &expected,
++                matrix_sdk::ruma::user_id!("@owner:example.org"),
++                "master"
++            ));
++            assert!(!matches_signing_key(
++                seed,
++                &expected,
++                matrix_sdk::ruma::user_id!("@other:example.org"),
++                "master"
++            ));
++            assert!(!matches_signing_key(
++                "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
++                &expected,
++                matrix_sdk::ruma::user_id!("@owner:example.org"),
++                "master"
++            ));
++            assert!(!matches_signing_key(
++                "invalid",
++                &expected,
++                matrix_sdk::ruma::user_id!("@owner:example.org"),
++                "master"
++            ));
++        }
++        #[test]
++        fn checks_missing_backup_version_and_public_key_independently() {
++            let key = BackupDecryptionKey::new();
++            let info = key.to_backup_info();
++            let mut bundle = SecretsBundle {
++                cross_signing: CrossSigningSecrets {
++                    master_key: String::new(),
++                    self_signing_key: String::new(),
++                    user_signing_key: String::new(),
++                },
++                backup: None,
++            };
++            assert_eq!(detect(&bundle, None), BundleState::WithoutBackup);
++            bundle.backup = Some(BackupSecrets::MegolmBackupV1Curve25519AesSha2(
++                MegolmBackupV1Curve25519AesSha2Secrets {
++                    key: key.clone(),
++                    backup_version: "1".into(),
++                },
++            ));
++            assert_eq!(detect(&bundle, None), BundleState::UnusedBackup);
++            assert_eq!(
++                detect(&bundle, Some(&("1".into(), info.clone()))),
++                BundleState::Complete
++            );
++            assert_eq!(
++                detect(&bundle, Some(&("2".into(), info))),
++                BundleState::UnusedBackup
++            );
++            assert_eq!(
++                detect(
++                    &bundle,
++                    Some(&("1".into(), BackupDecryptionKey::new().to_backup_info()))
++                ),
++                BundleState::UnusedBackup
++            );
++        }
++    }
++}
++
++use bundle_validation::OwnedBundle as TransferSecretsBundle;
++/// Check both backup version and key using the cross-platform native policy.
++fn detect_bundle_version(bundle: &matrix_sdk_base::crypto::types::SecretsBundle, info: Option<&(String, RoomKeyBackupInfo)>) -> DetectedSecretsBundle {
++    match bundle_validation::detect(bundle, info) {
++        bundle_validation::BundleState::WithoutBackup => DetectedSecretsBundle::WithoutBackup,
++        bundle_validation::BundleState::UnusedBackup => DetectedSecretsBundle::UnusedBackup,
++        bundle_validation::BundleState::Complete => DetectedSecretsBundle::Complete,
++    }
++}
++fn bundle_transfer_error(code: &str) -> ClientError {
++    ClientError::Generic { msg: format!("SECRETS_BUNDLE_{code}"), details: None }
++}
++impl Encryption {
++    /// Fetch current server metadata using the shared native validation policy.
++    async fn secrets_bundle_backup_info(&self) -> Result<Option<(String, RoomKeyBackupInfo)>, ClientError> {
++        bundle_validation::backup_info(&self._client.inner).await.map_err(|_| bundle_transfer_error("BACKUP"))
++    }
++}
+diff --git a/crates/matrix-sdk/src/encryption/mod.rs b/crates/matrix-sdk/src/encryption/mod.rs
+index efe6c2b..3da7dcb 100644
+--- a/crates/matrix-sdk/src/encryption/mod.rs
++++ b/crates/matrix-sdk/src/encryption/mod.rs
+@@ -916,6 +916,15 @@ impl Encryption {
+         }
+     }
+ 
++    /// Export the currently open crypto store without reopening SQLite or exposing its passphrase.
++    /// Wait for initialization before reading the private signing and optional backup secrets.
++    pub async fn export_secrets_bundle(&self) -> Result<SecretsBundle, matrix_sdk_base::crypto::store::SecretsBundleExportError> {
++        self.wait_for_e2ee_initialization_tasks().await;
++        let machine = self.client.olm_machine().await;
++        let machine = machine.as_ref().ok_or(matrix_sdk_base::crypto::store::SecretsBundleExportError::MissingCrossSigningKeys)?;
++        machine.store().export_secrets_bundle().await
++    }
++
+     /// This method will import all the private cross-signing keys and, if
+     /// available, the private part of a backup key and its accompanying
+     /// version into the store.
